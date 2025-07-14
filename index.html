@@ -12,7 +12,6 @@
     }
 
     .title {
-      text-align: center;
       color: #e30613;
     }
 
@@ -122,11 +121,13 @@
   </div>
 
   <h2>Manga Liste</h2>
+  <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 60%;">
+
   <div class="manga-list" id="mangaList"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
@@ -149,24 +150,47 @@
     async function loadMangas() {
       list.innerHTML = "";
       const querySnapshot = await getDocs(collection(db, "mangas"));
-      querySnapshot.forEach((doc) => {
-        renderManga(doc.data());
+      querySnapshot.forEach((docSnap) => {
+        renderManga(docSnap.data(), docSnap.id);
       });
     }
 
-    function renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl }) {
+    function renderManga(data, docId) {
+      const { name, band, preis, mangaka, verlag, datum, coverUrl } = data;
       const entry = document.createElement("div");
       entry.className = "manga-entry";
 
       const deleteBtn = document.createElement("div");
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "×";
-      deleteBtn.onclick = () => entry.remove();
+      deleteBtn.onclick = async () => {
+        await deleteDoc(doc(db, "mangas", docId));
+        loadMangas();
+      };
 
       const editBtn = document.createElement("div");
       editBtn.className = "edit-btn";
       editBtn.textContent = "✎";
-      editBtn.onclick = () => alert("Bearbeiten-Funktion folgt");
+      editBtn.onclick = async () => {
+        const newName = prompt("Neuer Name:", name);
+        const newBand = prompt("Neue Bandnummer:", band);
+        const newPreis = prompt("Neuer Preis (€):", preis);
+        const newMangaka = prompt("Neuer Mangaka:", mangaka);
+        const newVerlag = prompt("Neuer Verlag:", verlag);
+        const newDatum = prompt("Neues Erscheinungsdatum:", datum);
+
+        if (!newName || !newBand) return;
+
+        await updateDoc(doc(db, "mangas", docId), {
+          name: newName,
+          band: newBand,
+          preis: newPreis,
+          mangaka: newMangaka,
+          verlag: newVerlag,
+          datum: newDatum
+        });
+        loadMangas();
+      };
 
       const buttonWrapper = document.createElement("div");
       buttonWrapper.style.display = "flex";
@@ -221,6 +245,15 @@
       } else {
         saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl: null });
       }
+    };
+
+    window.filterMangas = () => {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const entries = document.querySelectorAll(".manga-entry");
+      entries.forEach(entry => {
+        const text = entry.innerText.toLowerCase();
+        entry.style.display = text.includes(search) ? "flex" : "none";
+      });
     };
 
     loadMangas();
