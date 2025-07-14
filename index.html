@@ -16,7 +16,7 @@
     }
 
     .form-container, .manga-list {
-      max-width: 800px;
+      max-width: 1000px;
       margin: auto;
     }
 
@@ -47,6 +47,7 @@
       border-radius: 8px;
       margin-bottom: 10px;
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      max-width: 1000px;
     }
 
     .cover {
@@ -155,6 +156,14 @@
       });
     }
 
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    }
+
     function renderManga(data, docId) {
       const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
       const entry = document.createElement("div");
@@ -205,8 +214,7 @@
       const info = document.createElement("div");
       info.className = "manga-info";
       info.innerHTML = `
-        <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag}</div>
-        <div>Erscheinungsdatum: ${datum}</div>
+        <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag} | Erscheinungsdatum: ${formatDate(datum)}</div>
       `;
 
       const status = document.createElement("div");
