@@ -10,21 +10,17 @@
       background-color: #f9f9f9;
       text-align: center;
     }
-
     .title {
       color: #e30613;
     }
-
     .form-container, .manga-list {
       max-width: 1000px;
       margin: auto;
     }
-
     .form-container input {
       padding: 6px;
       margin: 4px;
     }
-
     .form-container button {
       padding: 6px 12px;
       background-color: #e30613;
@@ -33,11 +29,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     .form-container button:hover {
       background-color: #c00510;
     }
-
     .manga-entry {
       display: flex;
       align-items: center;
@@ -49,7 +43,6 @@
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
       max-width: 1000px;
     }
-
     .cover {
       width: 60px;
       height: 80px;
@@ -57,7 +50,6 @@
       background-size: cover;
       background-position: center;
     }
-
     .delete-btn, .edit-btn {
       width: 20px;
       height: 20px;
@@ -70,23 +62,10 @@
       cursor: pointer;
       margin-top: 4px;
     }
-
-    .delete-btn {
-      background-color: #888;
-    }
-
-    .delete-btn:hover {
-      background-color: #444;
-    }
-
-    .edit-btn {
-      background-color: #007acc;
-    }
-
-    .edit-btn:hover {
-      background-color: #005fa3;
-    }
-
+    .delete-btn { background-color: #888; }
+    .delete-btn:hover { background-color: #444; }
+    .edit-btn { background-color: #007acc; }
+    .edit-btn:hover { background-color: #005fa3; }
     .status-circle {
       width: 24px;
       height: 24px;
@@ -94,12 +73,10 @@
       background-color: orange;
       cursor: pointer;
     }
-
     .manga-info {
       flex-grow: 1;
       text-align: left;
     }
-
     .manga-info strong {
       display: inline-block;
       min-width: 80px;
@@ -107,9 +84,7 @@
   </style>
 </head>
 <body>
-
   <h1 class="title">MANGASAMMLUNG</h1>
-
   <div class="form-container">
     <input type="text" id="name" placeholder="Manganame">
     <input type="text" id="band" placeholder="Bandnummer">
@@ -120,12 +95,9 @@
     <input type="file" id="coverUpload">
     <button onclick="addManga()">Hinzufügen</button>
   </div>
-
   <h2>Manga Liste</h2>
   <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 60%;">
-
   <div class="manga-list" id="mangaList"></div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
@@ -189,16 +161,10 @@
         const newMangaka = prompt("Neuer Mangaka:", mangaka);
         const newVerlag = prompt("Neuer Verlag:", verlag);
         const newDatum = prompt("Neues Erscheinungsdatum:", datum);
-
         if (!newName || !newBand) return;
-
         await updateDoc(doc(db, "mangas", docId), {
-          name: newName,
-          band: newBand,
-          preis: newPreis,
-          mangaka: newMangaka,
-          verlag: newVerlag,
-          datum: newDatum
+          name: newName, band: newBand, preis: newPreis,
+          mangaka: newMangaka, verlag: newVerlag, datum: newDatum
         });
         loadMangas();
       };
@@ -215,9 +181,7 @@
 
       const info = document.createElement("div");
       info.className = "manga-info";
-      info.innerHTML = `
-        <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag} | Erscheinungsdatum: ${formatDate(datum)}</div>
-      `;
+      info.innerHTML = `<div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag} | Erscheinungsdatum: ${formatDate(datum)}</div>`;
 
       const status = document.createElement("div");
       status.className = "status-circle";
@@ -239,26 +203,26 @@
     }
 
     window.addManga = () => {
-      const name = document.getElementById("name").value;
-      const band = document.getElementById("band").value;
-      const preis = document.getElementById("preis").value;
-      const mangaka = document.getElementById("mangaka").value;
-      const verlag = document.getElementById("verlag").value;
+      const name = document.getElementById("name").value.trim();
+      const band = document.getElementById("band").value.trim();
+      const preis = document.getElementById("preis").value.trim();
+      const mangaka = document.getElementById("mangaka").value.trim();
+      const verlag = document.getElementById("verlag").value.trim();
       let datum = document.getElementById("datum").value;
-
       if (!datum) {
         const today = new Date();
         datum = today.toISOString().split("T")[0];
       }
-
+      if (!name || !band || !preis || !mangaka || !verlag) {
+        alert("Bitte alle Felder ausfüllen!");
+        return;
+      }
       const coverFile = document.getElementById("coverUpload").files[0];
-
       const reader = new FileReader();
       reader.onloadend = () => {
         const coverUrl = coverFile ? reader.result : null;
         saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
       };
-
       if (coverFile) {
         reader.readAsDataURL(coverFile);
       } else {
