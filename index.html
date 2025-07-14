@@ -125,6 +125,16 @@
       flex-wrap: wrap;
     }
 
+    .manga-list {
+      min-height: 100px;
+      border: 2px dashed transparent;
+      transition: border-color 0.2s ease;
+    }
+
+    .manga-list.drag-over {
+      border-color: #ccc;
+    }
+
     @media (max-width: 800px) {
       .flex-container {
         flex-direction: column;
@@ -150,11 +160,11 @@
     <div style="flex: 1; min-width: 300px;">
       <h2>Manga Liste</h2>
       <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 90%;">
-      <div class="manga-list" id="mangaList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+      <div class="manga-list" id="mangaList" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
     </div>
     <div style="flex: 1; min-width: 300px;">
       <h2>Ich besitze bereits</h2>
-      <div class="manga-list" id="ownedList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+      <div class="manga-list" id="ownedList" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
     </div>
   </div>
 
@@ -176,7 +186,6 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-
   const list = document.getElementById("mangaList");
   const owned = document.getElementById("ownedList");
 
@@ -321,11 +330,16 @@
     });
   };
 
-  // Drag & Drop mit Firestore Update
+  // DRAG & DROP + BESITZSTATUS
   let draggedElement = null;
 
   window.allowDrop = function(event) {
     event.preventDefault();
+    event.currentTarget.classList.add("drag-over");
+  };
+
+  window.dragLeave = function(event) {
+    event.currentTarget.classList.remove("drag-over");
   };
 
   window.drag = function(event) {
@@ -335,6 +349,8 @@
   window.drop = async function(event) {
     event.preventDefault();
     const targetList = event.currentTarget;
+    targetList.classList.remove("drag-over");
+
     if (!draggedElement || !targetList.classList.contains("manga-list")) return;
 
     targetList.appendChild(draggedElement);
