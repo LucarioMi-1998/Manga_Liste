@@ -127,16 +127,13 @@
       transition: border-color 0.2s ease;
     }
 
-    .manga-list.drag-over {
-      border-color: #ccc;
-    }
-
     @media (max-width: 800px) {
       .flex-container {
         flex-direction: column;
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
 <h1 class="title">MANGASAMMLUNG</h1>
@@ -156,11 +153,11 @@
   <div style="flex: 1; min-width: 300px;">
     <h2>Manga Liste</h2>
     <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 90%;">
-    <div class="manga-list" id="mangaList" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div class="manga-list" id="mangaList"></div>
   </div>
   <div style="flex: 1; min-width: 300px;">
     <h2>Ich besitze bereits</h2>
-    <div class="manga-list" id="ownedList" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+    <div class="manga-list" id="ownedList"></div>
   </div>
 </div>
 
@@ -210,8 +207,6 @@ function renderManga(data, docId) {
   const entry = document.createElement("div");
   entry.className = "manga-entry";
   entry.id = docId;
-  entry.setAttribute("draggable", "true");
-  entry.setAttribute("ondragstart", "dragStart(event)");
   entry.dataset.docid = docId;
 
   entry.innerHTML = `
@@ -223,7 +218,7 @@ function renderManga(data, docId) {
     <div class="manga-info">
       <strong>${name}</strong> | Band ${band} | ${preis} €<br>${mangaka} | ${verlag} | ${formatDate(datum)}
     </div>
-    <div class="status-circle" style="background-color: ${statusColor};"></div>
+    <div class="status-circle" style="background-color: ${statusColor};" onclick="toggleStatus('${docId}', '${statusColor}')"></div>
   `;
 
   (besitze ? owned : list).appendChild(entry);
@@ -292,36 +287,32 @@ window.filterMangas = () => {
   });
 };
 
-// Drag & Drop
-let draggedId = null;
-
-window.dragStart = function(event) {
-  draggedId = event.target.id;
-  event.dataTransfer.setData("text/plain", draggedId);
+window.toggleStatus = async function(docId, currentColor) {
+  const nextColor = currentColor === "orange" ? "red" : currentColor === "red" ? "green" : "orange";
+  await updateDoc(doc(db, "mangas", docId), { statusColor: nextColor });
+  loadMangas();
 };
 
-window.allowDrop = function(event) {
-  event.preventDefault();
-  event.currentTarget.classList.add("drag-over");
-};
-
-window.dragLeave = function(event) {
-  event.currentTarget.classList.remove("drag-over");
-};
-
-window.drop = async function(event) {
-  event.preventDefault();
-  const target = event.currentTarget;
-  const draggedElem = document.getElementById(event.dataTransfer.getData("text/plain"));
-  if (draggedElem && target && target.classList.contains("manga-list")) {
-    target.appendChild(draggedElem);
-    target.classList.remove("drag-over");
-
-    const docId = draggedElem.dataset.docid;
-    const isOwned = target.id === "ownedList";
+// Touchfreundliches Drag & Drop mit SortableJS
+new Sortable(document.getElementById("mangaList"), {
+  group: "mangas",
+  animation: 150,
+  onEnd: async function (evt) {
+    const docId = evt.item.dataset.docid;
+    const isOwned = evt.to.id === "ownedList";
     await updateDoc(doc(db, "mangas", docId), { besitze: isOwned });
   }
-};
+});
+
+new Sortable(document.getElementById("ownedList"), {
+  group: "mangas",
+  animation: 150,
+  onEnd: async function (evt) {
+    const docId = evt.item.dataset.docid;
+    const isOwned = evt.to.id === "ownedList";
+    await updateDoc(doc(db, "mangas", docId), { besitze: isOwned });
+  }
+});
 
 loadMangas();
 </script>
