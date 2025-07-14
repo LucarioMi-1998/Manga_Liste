@@ -10,49 +10,64 @@
       background-color: #f9f9f9;
       text-align: center;
     }
+
     .title {
       color: #e30613;
     }
-    .form-container, .manga-list {
+
+    .form-container,
+    .manga-list {
       max-width: 1000px;
       margin: auto;
     }
-    .form-container input {
-      padding: 6px;
-      margin: 4px;
-    }
+
+    .form-container input,
     .form-container button {
-      padding: 6px 12px;
+      padding: 10px;
+      margin: 6px;
+      font-size: 1rem;
+      width: calc(100% - 24px);
+      max-width: 400px;
+    }
+
+    .form-container button {
       background-color: #e30613;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
     }
+
     .form-container button:hover {
       background-color: #c00510;
     }
+
     .manga-entry {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 15px;
+      gap: 10px;
       background: white;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      margin-bottom: 12px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
       max-width: 1000px;
     }
+
     .cover {
-      width: 60px;
-      height: 80px;
+      width: 50px;
+      height: 70px;
       background-color: #e30613;
       background-size: cover;
       background-position: center;
+      flex-shrink: 0;
     }
-    .delete-btn, .edit-btn {
-      width: 20px;
-      height: 20px;
+
+    .delete-btn,
+    .edit-btn {
+      width: 26px;
+      height: 26px;
       color: white;
       border-radius: 50%;
       display: flex;
@@ -60,26 +75,69 @@
       align-items: center;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 4px;
+      margin: 2px auto;
     }
-    .delete-btn { background-color: #888; }
-    .delete-btn:hover { background-color: #444; }
-    .edit-btn { background-color: #007acc; }
-    .edit-btn:hover { background-color: #005fa3; }
+
+    .delete-btn {
+      background-color: #888;
+    }
+
+    .delete-btn:hover {
+      background-color: #444;
+    }
+
+    .edit-btn {
+      background-color: #007acc;
+    }
+
+    .edit-btn:hover {
+      background-color: #005fa3;
+    }
+
     .status-circle {
       width: 24px;
       height: 24px;
       border-radius: 50%;
       background-color: orange;
       cursor: pointer;
+      flex-shrink: 0;
     }
+
     .manga-info {
       flex-grow: 1;
       text-align: left;
+      font-size: 0.95rem;
     }
+
     .manga-info strong {
       display: inline-block;
       min-width: 80px;
+    }
+
+    input[type='file'] {
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 600px) {
+      .manga-entry {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .manga-info {
+        text-align: left;
+        width: 100%;
+      }
+
+      .form-container input,
+      .form-container button {
+        width: 90%;
+        margin: 6px auto;
+      }
+
+      #searchInput {
+        width: 90% !important;
+      }
     }
   </style>
 </head>
@@ -100,156 +158,157 @@
   <h2>Manga Liste</h2>
   <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 60%;">
   <div class="manga-list" id="mangaList"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs,
+    deleteDoc, doc, updateDoc
+  } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
+    authDomain: "mangasammlung-af171.firebaseapp.com",
+    projectId: "mangasammlung-af171",
+    storageBucket: "mangasammlung-af171.appspot.com",
+    messagingSenderId: "957280021236",
+    appId: "1:957280021236:web:ee8ea047e61ba246a84ca1"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
-      authDomain: "mangasammlung-af171.firebaseapp.com",
-      projectId: "mangasammlung-af171",
-      storageBucket: "mangasammlung-af171.appspot.com",
-      messagingSenderId: "957280021236",
-      appId: "1:957280021236:web:ee8ea047e61ba246a84ca1"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const list = document.getElementById("mangaList");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const list = document.getElementById("mangaList");
+  function formatDate(dateString) {
+    if (!dateString) return "kein Datum";
+    const date = new Date(dateString);
+    if (isNaN(date)) return "ungültig";
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
 
-    function formatDate(dateString) {
-      if (!dateString) return "kein Datum";
-      const date = new Date(dateString);
-      if (isNaN(date)) return "ungültig";
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}.${month}.${year}`;
-    }
-
-    async function saveManga(data) {
-      await addDoc(collection(db, "mangas"), data);
-      loadMangas();
-    }
-
-    async function loadMangas() {
-      list.innerHTML = "";
-      const querySnapshot = await getDocs(collection(db, "mangas"));
-      querySnapshot.forEach((docSnap) => {
-        renderManga(docSnap.data(), docSnap.id);
-      });
-    }
-
-    function renderManga(data, docId) {
-      const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
-      const entry = document.createElement("div");
-      entry.className = "manga-entry";
-
-      const deleteBtn = document.createElement("div");
-      deleteBtn.className = "delete-btn";
-      deleteBtn.textContent = "×";
-      deleteBtn.onclick = async () => {
-        await deleteDoc(doc(db, "mangas", docId));
-        loadMangas();
-      };
-
-      const editBtn = document.createElement("div");
-      editBtn.className = "edit-btn";
-      editBtn.textContent = "✎";
-      editBtn.onclick = async () => {
-        const newName = prompt("Neuer Name:", name);
-        const newBand = prompt("Neue Bandnummer:", band);
-        const newPreis = prompt("Neuer Preis (€):", preis);
-        const newMangaka = prompt("Neuer Mangaka:", mangaka);
-        const newVerlag = prompt("Neuer Verlag:", verlag);
-        const newDatum = prompt("Neues Erscheinungsdatum:", datum);
-        if (!newName || !newBand) return;
-        await updateDoc(doc(db, "mangas", docId), {
-          name: newName, band: newBand, preis: newPreis,
-          mangaka: newMangaka, verlag: newVerlag, datum: newDatum
-        });
-        loadMangas();
-      };
-
-      const buttonWrapper = document.createElement("div");
-      buttonWrapper.style.display = "flex";
-      buttonWrapper.style.flexDirection = "column";
-      buttonWrapper.appendChild(deleteBtn);
-      buttonWrapper.appendChild(editBtn);
-
-      const cover = document.createElement("div");
-      cover.className = "cover";
-      if (coverUrl) cover.style.backgroundImage = `url(${coverUrl})`;
-
-      const info = document.createElement("div");
-      info.className = "manga-info";
-      info.innerHTML = `<div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag} | Erscheinungsdatum: ${formatDate(datum)}</div>`;
-
-      const status = document.createElement("div");
-      status.className = "status-circle";
-      status.dataset.status = ["orange", "green", "red"].indexOf(statusColor);
-      status.style.backgroundColor = statusColor;
-      status.onclick = async () => {
-        let next = (parseInt(status.dataset.status) + 1) % 3;
-        status.dataset.status = next;
-        const newColor = ["orange", "green", "red"][next];
-        status.style.backgroundColor = newColor;
-        await updateDoc(doc(db, "mangas", docId), { statusColor: newColor });
-      };
-
-      entry.appendChild(buttonWrapper);
-      entry.appendChild(cover);
-      entry.appendChild(info);
-      entry.appendChild(status);
-      list.appendChild(entry);
-    }
-
-    window.addManga = () => {
-      const name = document.getElementById("name").value.trim();
-      const band = document.getElementById("band").value.trim();
-      const preis = document.getElementById("preis").value.trim();
-      const mangaka = document.getElementById("mangaka").value.trim();
-      const verlag = document.getElementById("verlag").value.trim();
-      let datum = document.getElementById("datum").value;
-      if (!datum) {
-        const today = new Date();
-        datum = today.toISOString().split("T")[0];
-      }
-      if (!name || !band || !preis || !mangaka || !verlag) {
-        alert("Bitte alle Felder ausfüllen!");
-        return;
-      }
-
-      const coverFile = document.getElementById("coverUpload").files[0];
-      const saveData = (coverUrl) => {
-        saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
-      };
-
-      if (coverFile) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          saveData(reader.result);
-        };
-        reader.onerror = () => {
-          alert("Fehler beim Laden des Coverbilds!");
-        };
-        reader.readAsDataURL(coverFile);
-      } else {
-        saveData(null);
-      }
-    };
-
-    window.filterMangas = () => {
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      const entries = document.querySelectorAll(".manga-entry");
-      entries.forEach(entry => {
-        const text = entry.innerText.toLowerCase();
-        entry.style.display = text.includes(search) ? "flex" : "none";
-      });
-    };
-
+  async function saveManga(data) {
+    await addDoc(collection(db, "mangas"), data);
     loadMangas();
-  </script>
+  }
+
+  async function loadMangas() {
+    list.innerHTML = "";
+    const querySnapshot = await getDocs(collection(db, "mangas"));
+    querySnapshot.forEach((docSnap) => {
+      renderManga(docSnap.data(), docSnap.id);
+    });
+  }
+  function renderManga(data, docId) {
+    const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
+    const entry = document.createElement("div");
+    entry.className = "manga-entry";
+
+    const deleteBtn = document.createElement("div");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "×";
+    deleteBtn.onclick = async () => {
+      await deleteDoc(doc(db, "mangas", docId));
+      loadMangas();
+    };
+
+    const editBtn = document.createElement("div");
+    editBtn.className = "edit-btn";
+    editBtn.textContent = "✎";
+    editBtn.onclick = async () => {
+      const newName = prompt("Neuer Name:", name);
+      const newBand = prompt("Neue Bandnummer:", band);
+      const newPreis = prompt("Neuer Preis (€):", preis);
+      const newMangaka = prompt("Neuer Mangaka:", mangaka);
+      const newVerlag = prompt("Neuer Verlag:", verlag);
+      const newDatum = prompt("Neues Erscheinungsdatum (YYYY-MM-DD):", datum);
+      if (!newName || !newBand) return;
+      await updateDoc(doc(db, "mangas", docId), {
+        name: newName, band: newBand, preis: newPreis,
+        mangaka: newMangaka, verlag: newVerlag, datum: newDatum
+      });
+      loadMangas();
+    };
+
+    const buttonWrapper = document.createElement("div");
+    buttonWrapper.style.display = "flex";
+    buttonWrapper.style.flexDirection = "column";
+    buttonWrapper.appendChild(deleteBtn);
+    buttonWrapper.appendChild(editBtn);
+
+    const cover = document.createElement("div");
+    cover.className = "cover";
+    if (coverUrl) cover.style.backgroundImage = `url(${coverUrl})`;
+
+    const info = document.createElement("div");
+    info.className = "manga-info";
+    info.innerHTML = `<div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag} | Erscheinungsdatum: ${formatDate(datum)}</div>`;
+
+    const status = document.createElement("div");
+    status.className = "status-circle";
+    status.dataset.status = ["orange", "green", "red"].indexOf(statusColor);
+    status.style.backgroundColor = statusColor;
+    status.onclick = async () => {
+      let next = (parseInt(status.dataset.status) + 1) % 3;
+      status.dataset.status = next;
+      const newColor = ["orange", "green", "red"][next];
+      status.style.backgroundColor = newColor;
+      await updateDoc(doc(db, "mangas", docId), { statusColor: newColor });
+    };
+
+    entry.appendChild(buttonWrapper);
+    entry.appendChild(cover);
+    entry.appendChild(info);
+    entry.appendChild(status);
+    list.appendChild(entry);
+  }
+
+  window.addManga = () => {
+    const name = document.getElementById("name").value.trim();
+    const band = document.getElementById("band").value.trim();
+    const preis = document.getElementById("preis").value.trim();
+    const mangaka = document.getElementById("mangaka").value.trim();
+    const verlag = document.getElementById("verlag").value.trim();
+    let datum = document.getElementById("datum").value;
+    if (!datum) {
+      const today = new Date();
+      datum = today.toISOString().split("T")[0];
+    }
+    if (!name || !band || !preis || !mangaka || !verlag) {
+      alert("Bitte alle Felder ausfüllen!");
+      return;
+    }
+
+    const coverFile = document.getElementById("coverUpload").files[0];
+    const saveData = (coverUrl) => {
+      saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
+    };
+
+    if (coverFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        saveData(reader.result);
+      };
+      reader.onerror = () => {
+        alert("Fehler beim Laden des Coverbilds!");
+      };
+      reader.readAsDataURL(coverFile);
+    } else {
+      saveData(null);
+    }
+  };
+
+  window.filterMangas = () => {
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const entries = document.querySelectorAll(".manga-entry");
+    entries.forEach(entry => {
+      const text = entry.innerText.toLowerCase();
+      entry.style.display = text.includes(search) ? "flex" : "none";
+    });
+  };
+
+  loadMangas();
+</script>
 </body>
 </html>
