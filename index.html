@@ -143,6 +143,16 @@
     const db = getFirestore(app);
     const list = document.getElementById("mangaList");
 
+    function formatDate(dateString) {
+      if (!dateString) return "kein Datum";
+      const date = new Date(dateString);
+      if (isNaN(date)) return "ungültig";
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
+    }
+
     async function saveManga(data) {
       await addDoc(collection(db, "mangas"), data);
       loadMangas();
@@ -154,14 +164,6 @@
       querySnapshot.forEach((docSnap) => {
         renderManga(docSnap.data(), docSnap.id);
       });
-    }
-
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}.${month}.${year}`;
     }
 
     function renderManga(data, docId) {
@@ -242,7 +244,13 @@
       const preis = document.getElementById("preis").value;
       const mangaka = document.getElementById("mangaka").value;
       const verlag = document.getElementById("verlag").value;
-      const datum = document.getElementById("datum").value;
+      let datum = document.getElementById("datum").value;
+
+      if (!datum) {
+        const today = new Date();
+        datum = today.toISOString().split("T")[0];
+      }
+
       const coverFile = document.getElementById("coverUpload").files[0];
 
       const reader = new FileReader();
