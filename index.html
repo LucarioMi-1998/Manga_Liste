@@ -85,6 +85,7 @@
 </head>
 <body>
   <h1 class="title">MANGASAMMLUNG</h1>
+
   <div class="form-container">
     <input type="text" id="name" placeholder="Manganame">
     <input type="text" id="band" placeholder="Bandnummer">
@@ -95,9 +96,11 @@
     <input type="file" id="coverUpload">
     <button onclick="addManga()">Hinzufügen</button>
   </div>
+
   <h2>Manga Liste</h2>
   <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 60%;">
   <div class="manga-list" id="mangaList"></div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
@@ -217,16 +220,23 @@
         alert("Bitte alle Felder ausfüllen!");
         return;
       }
+
       const coverFile = document.getElementById("coverUpload").files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const coverUrl = coverFile ? reader.result : null;
+      const saveData = (coverUrl) => {
         saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
       };
+
       if (coverFile) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          saveData(reader.result);
+        };
+        reader.onerror = () => {
+          alert("Fehler beim Laden des Coverbilds!");
+        };
         reader.readAsDataURL(coverFile);
       } else {
-        saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl: null });
+        saveData(null);
       }
     };
 
