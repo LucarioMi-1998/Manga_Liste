@@ -2,187 +2,212 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Freiburg Asozial Quiz</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    padding: 10px;
-    background: #000;
-    color: #fff;
-    display: flex;
-    justify-content: center;
-  }
-  .container {
-    max-width: 600px;
-    width: 100%;
-  }
-  h1 {
-    color: #f00;
-    text-align: center;
-    font-size: 1.8em;
-    margin-bottom: 20px;
-  }
-  h2 {
-    color: #ffcc00;
-    font-size: 1.2em;
-  }
-  .question {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #111;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
-    display: none;
-  }
-  .question.active {
-    display: block;
-  }
-  label {
-    display: block;
-    margin: 8px 0;
-    font-size: 1em;
-    cursor: pointer;
-  }
-  input[type="radio"] {
-    margin-right: 8px;
-    transform: scale(1.2);
-  }
-  .btn-group {
-    text-align: center;
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-  }
-  button {
-    flex: 1 1 40%;
-    min-width: 120px;
-    padding: 12px;
-    font-size: 16px;
-    background-color: #ffcc00;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-  }
-  button:hover {
-    background-color: #ffaa00;
-  }
-  .result {
-    margin-top: 30px;
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #0f0;
-    text-align: center;
-  }
-  .correct {
-    color: #0f0;
-    font-weight: bold;
-  }
-  .incorrect {
-    color: #f00;
-    text-decoration: line-through;
-  }
-</style>
+  <title>Manga Liste</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background-color: #f9f9f9;
+      text-align: center;
+    }
+
+    .title {
+      text-align: center;
+      color: #e30613;
+    }
+
+    .form-container, .manga-list {
+      max-width: 800px;
+      margin: auto;
+    }
+
+    .form-container input {
+      padding: 6px;
+      margin: 4px;
+    }
+
+    .form-container button {
+      padding: 6px 12px;
+      background-color: #e30613;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .form-container button:hover {
+      background-color: #c00510;
+    }
+
+    .manga-entry {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .cover {
+      width: 60px;
+      height: 80px;
+      background-color: #e30613;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .delete-btn, .edit-btn {
+      width: 20px;
+      height: 20px;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    .delete-btn {
+      background-color: #888;
+    }
+
+    .delete-btn:hover {
+      background-color: #444;
+    }
+
+    .edit-btn {
+      background-color: #007acc;
+    }
+
+    .edit-btn:hover {
+      background-color: #005fa3;
+    }
+
+    .status-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: orange;
+      cursor: pointer;
+    }
+
+    .manga-info {
+      flex-grow: 1;
+      text-align: left;
+    }
+
+    .manga-info strong {
+      display: inline-block;
+      min-width: 80px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Freiburg Asozial Quiz</h1>
-    <form id="quizForm">
-      <div id="questions"></div>
-      <div class="btn-group">
-        <button type="button" id="nextBtn">Weiter</button>
-        <button type="button" onclick="location.reload()">Neu starten</button>
-      </div>
-    </form>
-    <div class="result" id="result"></div>
+
+  <h1 class="title">MANGASAMMLUNG</h1>
+
+  <div class="form-container">
+    <input type="text" id="name" placeholder="Manganame">
+    <input type="text" id="band" placeholder="Bandnummer">
+    <input type="text" id="preis" placeholder="Preis">
+    <input type="text" id="mangaka" placeholder="Mangaka">
+    <input type="text" id="verlag" placeholder="Verlag">
+    <input type="date" id="datum" placeholder="Erscheinungsdatum">
+    <input type="file" id="coverUpload">
+    <button onclick="addManga()">Hinzufügen</button>
   </div>
 
+  <h2>Manga Liste</h2>
+  <div class="manga-list" id="mangaList"></div>
+
   <script>
-    const fragen = [
-      ["Welches bekannte Logo war auf der alten weißen Zaunfahne von FA?", ["ADIDAS", "NIKE", "UMBRO", "LYLE AND SCOTT"], "ADIDAS"],
-      ["Wie viele Mitglieder befinden sich aktuell in der Hauptgruppe von Freiburg Asozial?", ["19", "40", "21", "30"], "21"],
-      ["Wie viele Geschlechtskrankheiten hatte Lukas bisher?", ["Alle", "2", "4", "keine"], "Alle"],
-      ["Wie viel G haut Heiko bei einer durchschnittlichen Auswärtsfahrt ALLEINE weg?", ["1-1,5", "3", "2", "2-3"], "2-3"],
-      ["Wer hat an der Weihnachtsfeier den Titel „Säuferkönig 2024“ abgeräumt?", ["Lars", "Fabio", "Robert", "Heiko"], "Robert"],
-      ["Wie viel Kohle bekommt derjenige,der die dicke Eule mit Beweisvideo vögelt?", ["350€", "400€", "700€", "500€"], "500€"],
-      ["Welches Tier ähnelt unserem alten Vorsänger Marco Giaccobone am meisten?", ["Chamäleon", "Pferd", "Giraffe", "Tasmanischer Teufel"], "Chamäleon"],
-      ["Nenne alle ULTRA Gruppen in welchen Leon war", ["SYN NBU", "WJF SYN", "NBU WJF", "CRL SYN"], "SYN NBU"],
-      ["Bei welchem Auswärtsspiel haben Heiko und Fabio 2017 Stadionverbot bekommen?", ["Düsseldorf", "Bremen", "Berlin", "Cottbus"], "Bremen"],
-      ["Schätze den BMI von Sabrina", ["40", "41", "32", "36"], "32"],
-      ["Wie heißt das Stadion in dem Hannover 96 seine Heimspiele austrägt traditionell?", ["Stadion am Maschsee", "Stadion Hannover", "Niedersachsenstadion", "Maschseestadion"], "Niedersachsenstadion"],
-      ["Wie viele Zuschauer passen in die Eishockeyhalle in Zürich?", ["15.000", "10.000", "11.000", "12.000"], "12.000"],
-      ["Vervollständige einen bekannten Freiburger Fangesang: „Der Erfolg ist längst verflogen…..“", ["...und wir nehmen harte Drogen.", "...und wir saufen auf dem Boden", "...und die Frauen oben ohne", "...und wir haben dicke Hoden."], "...und wir nehmen harte Drogen."],
-      ["In welcher Saison wechselte Mo Idrissou zu unserem SC Freiburg?", ["09/10", "08/09", "07/08", "10/11"], "07/08"],
-      ["Zu welcher Saison übernahm Christian Günther die Kapitänsbinde beim SC Freiburg?", ["15/16", "14/15", "17/18", "18/19"], "14/15"],
-      ["Welche Währung hatte der Geldschein den Fabio immer liebevoll zweckentfremdet hat?", ["Yen", "Euro", "Pfund", "Tschechische Kronen"], "Pfund"],
-      ["Wie viele verschiedene Frauen hatte Lukas bereits im Bett?", ["40 Frauen 1 Divers", "90 Frauen 1 Divers", "75 Frauen", "100 Frauen"], "100 Frauen"],
-      ["Wie viel G Dope raucht Ruben an einem gewöhnlichem Spieltag ALLEINE weg?", ["0,938g", "1-2g", "3-2,5g", "2-2,5g"], "2-2,5g"],
-      ["Wie bezeichnet sich Marcel selbst?", ["wilde Maus", "wilder Hengst", "ungezähmter Tiger", "perverse Drecksau"], "perverse Drecksau"],
-      ["Wer wurde 2024 beim Europa-League-Spiel in Lens NICHT verhaftet?", ["Moll", "Beyer", "Lars", "Lukas"], "Lukas"]
-    ];
+    const STATUS_COLORS = ['orange', 'green', 'red'];
 
-    const container = document.getElementById("questions");
-    const nextBtn = document.getElementById("nextBtn");
-    let aktuelleFrage = 0;
+    function addManga() {
+      const name = document.getElementById('name').value;
+      const band = document.getElementById('band').value;
+      const preis = document.getElementById('preis').value;
+      const mangaka = document.getElementById('mangaka').value;
+      const verlag = document.getElementById('verlag').value;
+      const datum = document.getElementById('datum').value;
+      const coverFile = document.getElementById('coverUpload').files[0];
 
-    function zeigeFrage(index) {
-      const alleFragen = document.querySelectorAll('.question');
-      alleFragen.forEach(div => div.classList.remove('active'));
-      if (alleFragen[index]) {
-        alleFragen[index].classList.add('active');
+      const reader = new FileReader();
+      reader.onloadend = function () {
+        const coverUrl = coverFile ? reader.result : null;
+        renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
+      };
+
+      if (coverFile) {
+        reader.readAsDataURL(coverFile);
+      } else {
+        renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl: null });
       }
     }
 
-    fragen.forEach((frage, i) => {
-      const div = document.createElement("div");
-      div.className = "question";
-      if (i === 0) div.classList.add("active");
-      div.id = `frage${i}`;
-      div.innerHTML = `<h2>${i + 1}. ${frage[0]}</h2>` +
-        frage[1].map((antwort) =>
-          `<label><input type="radio" name="q${i}" value="${antwort}"> ${antwort}</label><br>`
-        ).join("");
-      container.appendChild(div);
-    });
+    function renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl }) {
+      const list = document.getElementById('mangaList');
 
-    nextBtn.addEventListener("click", () => {
-      if (aktuelleFrage < fragen.length - 1) {
-        aktuelleFrage++;
-        zeigeFrage(aktuelleFrage);
-        if (aktuelleFrage === fragen.length - 1) {
-          nextBtn.textContent = "Auswerten";
-        }
-      } else {
-        auswerten();
-        nextBtn.style.display = "none";
-      }
-    });
+      const entry = document.createElement('div');
+      entry.className = 'manga-entry';
 
-    function auswerten() {
-      let punkte = 0;
-      fragen.forEach((frage, i) => {
-        const ausgewaehlt = document.querySelector(`input[name="q${i}"]:checked`);
-        const antwortDivs = document.querySelectorAll(`#frage${i} input`);
+      const deleteBtn = document.createElement('div');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.textContent = '×';
+      deleteBtn.onclick = () => entry.remove();
 
-        antwortDivs.forEach(input => {
-          const label = input.parentElement;
-          if (input.value === frage[2]) {
-            label.classList.add("correct");
-          }
-          if (ausgewaehlt && input === ausgewaehlt && input.value !== frage[2]) {
-            label.classList.add("incorrect");
-          }
-          input.disabled = true;
-        });
+      const editBtn = document.createElement('div');
+      editBtn.className = 'edit-btn';
+      editBtn.textContent = '✎';
+      editBtn.onclick = () => {
+        const name = prompt("Neuer Manga-Name:", info.children[0].textContent.split('|')[0].trim());
+        const band = prompt("Neue Bandnummer:", info.children[0].textContent.split('|')[1].replace("Band", "").trim());
+        const preis = prompt("Neuer Preis (€):", info.children[0].textContent.split('|')[2].replace("€", "").trim());
+        const mangaka = prompt("Neuer Mangaka:", info.children[0].textContent.split('|')[3].trim());
+        const verlag = prompt("Neuer Verlag:", info.children[0].textContent.split('|')[4].trim());
+        const datum = prompt("Neues Erscheinungsdatum:", info.children[1].textContent.replace("Erscheinungsdatum:", "").trim());
 
-        if (ausgewaehlt && ausgewaehlt.value === frage[2]) {
-          punkte++;
-        }
-      });
+        info.innerHTML = `
+          <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag}</div>
+          <div>Erscheinungsdatum: ${datum}</div>
+        `;
+      };
 
-      document.getElementById("result").innerText = `Du hast ${punkte} von ${fragen.length} Punkten richtig!`;
+      const buttonWrapper = document.createElement('div');
+      buttonWrapper.style.display = 'flex';
+      buttonWrapper.style.flexDirection = 'column';
+      buttonWrapper.appendChild(deleteBtn);
+      buttonWrapper.appendChild(editBtn);
+
+      const cover = document.createElement('div');
+      cover.className = 'cover';
+      if (coverUrl) cover.style.backgroundImage = `url(${coverUrl})`;
+
+      const info = document.createElement('div');
+      info.className = 'manga-info';
+      info.innerHTML = `
+        <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag}</div>
+        <div>Erscheinungsdatum: ${datum}</div>
+      `;
+
+      const status = document.createElement('div');
+      status.className = 'status-circle';
+      status.dataset.status = "0";
+      status.onclick = () => {
+        let next = (parseInt(status.dataset.status) + 1) % 3;
+        status.dataset.status = next;
+        status.style.backgroundColor = STATUS_COLORS[next];
+      };
+
+      entry.appendChild(buttonWrapper);
+      entry.appendChild(cover);
+      entry.appendChild(info);
+      entry.appendChild(status);
+      list.appendChild(entry);
     }
   </script>
 </body>
