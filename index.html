@@ -156,7 +156,7 @@
     }
 
     function renderManga(data, docId) {
-      const { name, band, preis, mangaka, verlag, datum, coverUrl } = data;
+      const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
       const entry = document.createElement("div");
       entry.className = "manga-entry";
 
@@ -211,11 +211,14 @@
 
       const status = document.createElement("div");
       status.className = "status-circle";
-      status.dataset.status = "0";
-      status.onclick = () => {
+      status.dataset.status = ["orange", "green", "red"].indexOf(statusColor);
+      status.style.backgroundColor = statusColor;
+      status.onclick = async () => {
         let next = (parseInt(status.dataset.status) + 1) % 3;
         status.dataset.status = next;
-        status.style.backgroundColor = ["orange", "green", "red"][next];
+        const newColor = ["orange", "green", "red"][next];
+        status.style.backgroundColor = newColor;
+        await updateDoc(doc(db, "mangas", docId), { statusColor: newColor });
       };
 
       entry.appendChild(buttonWrapper);
