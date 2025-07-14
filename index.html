@@ -117,6 +117,14 @@
       font-size: 0.9rem;
     }
 
+    .flex-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+
     @media (max-width: 800px) {
       .flex-container {
         flex-direction: column;
@@ -138,24 +146,15 @@
     <button onclick="addManga()">Hinzufügen</button>
   </div>
 
-  <div class="flex-container" style="display: flex; justify-content: space-between; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+  <div class="flex-container">
     <div style="flex: 1; min-width: 300px;">
       <h2>Manga Liste</h2>
       <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 90%;">
-      <div class="manga-list" id="mangaList"></div>
+      <div class="manga-list" id="mangaList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
     </div>
     <div style="flex: 1; min-width: 300px;">
       <h2>Ich besitze bereits</h2>
-      <div class="manga-list" id="ownedList">
-        <div class="manga-entry">
-          <div class="cover" style="background-image: url('https://upload.wikimedia.org/wikipedia/en/6/6f/Death_Note_Vol_1.jpg');"></div>
-          <div class="manga-info"><strong>Death Note</strong> | Band 1 | Tsugumi Ōba</div>
-        </div>
-        <div class="manga-entry">
-          <div class="cover" style="background-image: url('https://upload.wikimedia.org/wikipedia/en/7/7e/NarutoCoverTankobon1.jpg');"></div>
-          <div class="manga-info"><strong>Naruto</strong> | Band 5 | Masashi Kishimoto</div>
-        </div>
-      </div>
+      <div class="manga-list" id="ownedList" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
     </div>
   </div>
 
@@ -177,7 +176,9 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+
   const list = document.getElementById("mangaList");
+  const owned = document.getElementById("ownedList");
 
   function formatDate(dateString) {
     if (!dateString) return "kein Datum";
@@ -196,6 +197,7 @@
 
   async function loadMangas() {
     list.innerHTML = "";
+    owned.innerHTML = "";
     const querySnapshot = await getDocs(collection(db, "mangas"));
     querySnapshot.forEach((docSnap) => {
       renderManga(docSnap.data(), docSnap.id);
@@ -203,9 +205,13 @@
   }
 
   function renderManga(data, docId) {
-    const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
+    const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange", besitze = false } = data;
+
     const entry = document.createElement("div");
     entry.className = "manga-entry";
+    entry.setAttribute("draggable", "true");
+    entry.setAttribute("ondragstart", "drag(event)");
+    entry.dataset.docid = docId;
 
     const deleteBtn = document.createElement("div");
     deleteBtn.className = "delete-btn";
@@ -263,7 +269,12 @@
     entry.appendChild(cover);
     entry.appendChild(info);
     entry.appendChild(status);
-    list.appendChild(entry);
+
+    if (besitze) {
+      owned.appendChild(entry);
+    } else {
+      list.appendChild(entry);
+    }
   }
 
   window.addManga = () => {
@@ -284,7 +295,7 @@
 
     const coverFile = document.getElementById("coverUpload").files[0];
     const saveData = (coverUrl) => {
-      saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
+      saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl, besitze: false });
     };
 
     if (coverFile) {
@@ -308,6 +319,35 @@
       const text = entry.innerText.toLowerCase();
       entry.style.display = text.includes(search) ? "flex" : "none";
     });
+  };
+
+  // Drag & Drop mit Firestore Update
+  let draggedElement = null;
+
+  window.allowDrop = function(event) {
+    event.preventDefault();
+  };
+
+  window.drag = function(event) {
+    draggedElement = event.target;
+  };
+
+  window.drop = async function(event) {
+    event.preventDefault();
+    const targetList = event.currentTarget;
+    if (!draggedElement || !targetList.classList.contains("manga-list")) return;
+
+    targetList.appendChild(draggedElement);
+
+    const docId = draggedElement.dataset.docid;
+    if (!docId) return;
+
+    const isOwned = (targetList.id === "ownedList");
+    try {
+      await updateDoc(doc(db, "mangas", docId), { besitze: isOwned });
+    } catch (err) {
+      console.error("Fehler beim Besitz-Update:", err);
+    }
   };
 
   loadMangas();
