@@ -52,7 +52,6 @@
       border-radius: 8px;
       margin-bottom: 12px;
       box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-      max-width: 1000px;
     }
 
     .cover {
@@ -118,25 +117,9 @@
       font-size: 0.9rem;
     }
 
-    @media (max-width: 600px) {
-      .manga-entry {
+    @media (max-width: 800px) {
+      .flex-container {
         flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .manga-info {
-        text-align: left;
-        width: 100%;
-      }
-
-      .form-container input,
-      .form-container button {
-        width: 90%;
-        margin: 6px auto;
-      }
-
-      #searchInput {
-        width: 90% !important;
       }
     }
   </style>
@@ -155,9 +138,27 @@
     <button onclick="addManga()">Hinzufügen</button>
   </div>
 
-  <h2>Manga Liste</h2>
-  <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 60%;">
-  <div class="manga-list" id="mangaList"></div>
+  <div class="flex-container" style="display: flex; justify-content: space-between; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 300px;">
+      <h2>Manga Liste</h2>
+      <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 90%;">
+      <div class="manga-list" id="mangaList"></div>
+    </div>
+    <div style="flex: 1; min-width: 300px;">
+      <h2>Ich besitze bereits</h2>
+      <div class="manga-list" id="ownedList">
+        <div class="manga-entry">
+          <div class="cover" style="background-image: url('https://upload.wikimedia.org/wikipedia/en/6/6f/Death_Note_Vol_1.jpg');"></div>
+          <div class="manga-info"><strong>Death Note</strong> | Band 1 | Tsugumi Ōba</div>
+        </div>
+        <div class="manga-entry">
+          <div class="cover" style="background-image: url('https://upload.wikimedia.org/wikipedia/en/7/7e/NarutoCoverTankobon1.jpg');"></div>
+          <div class="manga-info"><strong>Naruto</strong> | Band 5 | Masashi Kishimoto</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
   import {
@@ -200,6 +201,7 @@
       renderManga(docSnap.data(), docSnap.id);
     });
   }
+
   function renderManga(data, docId) {
     const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange" } = data;
     const entry = document.createElement("div");
