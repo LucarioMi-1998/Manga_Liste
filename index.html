@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Manga Liste</title>
+  <title>Manga Sammlung</title>
   <style>
     body {
       font-family: sans-serif;
@@ -124,83 +124,74 @@
   <h2>Manga Liste</h2>
   <div class="manga-list" id="mangaList"></div>
 
-  <script>
-    const STATUS_COLORS = ['orange', 'green', 'red'];
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-    function addManga() {
-      const name = document.getElementById('name').value;
-      const band = document.getElementById('band').value;
-      const preis = document.getElementById('preis').value;
-      const mangaka = document.getElementById('mangaka').value;
-      const verlag = document.getElementById('verlag').value;
-      const datum = document.getElementById('datum').value;
-      const coverFile = document.getElementById('coverUpload').files[0];
+    const firebaseConfig = {
+      apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
+      authDomain: "mangasammlung-af171.firebaseapp.com",
+      projectId: "mangasammlung-af171",
+      storageBucket: "mangasammlung-af171.appspot.com",
+      messagingSenderId: "957280021236",
+      appId: "1:957280021236:web:ee8ea047e61ba246a84ca1"
+    };
 
-      const reader = new FileReader();
-      reader.onloadend = function () {
-        const coverUrl = coverFile ? reader.result : null;
-        renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
-      };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const list = document.getElementById("mangaList");
 
-      if (coverFile) {
-        reader.readAsDataURL(coverFile);
-      } else {
-        renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl: null });
-      }
+    async function saveManga(data) {
+      await addDoc(collection(db, "mangas"), data);
+      loadMangas();
+    }
+
+    async function loadMangas() {
+      list.innerHTML = "";
+      const querySnapshot = await getDocs(collection(db, "mangas"));
+      querySnapshot.forEach((doc) => {
+        renderManga(doc.data());
+      });
     }
 
     function renderManga({ name, band, preis, mangaka, verlag, datum, coverUrl }) {
-      const list = document.getElementById('mangaList');
+      const entry = document.createElement("div");
+      entry.className = "manga-entry";
 
-      const entry = document.createElement('div');
-      entry.className = 'manga-entry';
-
-      const deleteBtn = document.createElement('div');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.textContent = '×';
+      const deleteBtn = document.createElement("div");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "×";
       deleteBtn.onclick = () => entry.remove();
 
-      const editBtn = document.createElement('div');
-      editBtn.className = 'edit-btn';
-      editBtn.textContent = '✎';
-      editBtn.onclick = () => {
-        const name = prompt("Neuer Manga-Name:", info.children[0].textContent.split('|')[0].trim());
-        const band = prompt("Neue Bandnummer:", info.children[0].textContent.split('|')[1].replace("Band", "").trim());
-        const preis = prompt("Neuer Preis (€):", info.children[0].textContent.split('|')[2].replace("€", "").trim());
-        const mangaka = prompt("Neuer Mangaka:", info.children[0].textContent.split('|')[3].trim());
-        const verlag = prompt("Neuer Verlag:", info.children[0].textContent.split('|')[4].trim());
-        const datum = prompt("Neues Erscheinungsdatum:", info.children[1].textContent.replace("Erscheinungsdatum:", "").trim());
+      const editBtn = document.createElement("div");
+      editBtn.className = "edit-btn";
+      editBtn.textContent = "✎";
+      editBtn.onclick = () => alert("Bearbeiten-Funktion folgt");
 
-        info.innerHTML = `
-          <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag}</div>
-          <div>Erscheinungsdatum: ${datum}</div>
-        `;
-      };
-
-      const buttonWrapper = document.createElement('div');
-      buttonWrapper.style.display = 'flex';
-      buttonWrapper.style.flexDirection = 'column';
+      const buttonWrapper = document.createElement("div");
+      buttonWrapper.style.display = "flex";
+      buttonWrapper.style.flexDirection = "column";
       buttonWrapper.appendChild(deleteBtn);
       buttonWrapper.appendChild(editBtn);
 
-      const cover = document.createElement('div');
-      cover.className = 'cover';
+      const cover = document.createElement("div");
+      cover.className = "cover";
       if (coverUrl) cover.style.backgroundImage = `url(${coverUrl})`;
 
-      const info = document.createElement('div');
-      info.className = 'manga-info';
+      const info = document.createElement("div");
+      info.className = "manga-info";
       info.innerHTML = `
         <div><strong>${name}</strong> | Band ${band} | ${preis} € | ${mangaka} | ${verlag}</div>
         <div>Erscheinungsdatum: ${datum}</div>
       `;
 
-      const status = document.createElement('div');
-      status.className = 'status-circle';
+      const status = document.createElement("div");
+      status.className = "status-circle";
       status.dataset.status = "0";
       status.onclick = () => {
         let next = (parseInt(status.dataset.status) + 1) % 3;
         status.dataset.status = next;
-        status.style.backgroundColor = STATUS_COLORS[next];
+        status.style.backgroundColor = ["orange", "green", "red"][next];
       };
 
       entry.appendChild(buttonWrapper);
@@ -209,6 +200,30 @@
       entry.appendChild(status);
       list.appendChild(entry);
     }
+
+    window.addManga = () => {
+      const name = document.getElementById("name").value;
+      const band = document.getElementById("band").value;
+      const preis = document.getElementById("preis").value;
+      const mangaka = document.getElementById("mangaka").value;
+      const verlag = document.getElementById("verlag").value;
+      const datum = document.getElementById("datum").value;
+      const coverFile = document.getElementById("coverUpload").files[0];
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const coverUrl = coverFile ? reader.result : null;
+        saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl });
+      };
+
+      if (coverFile) {
+        reader.readAsDataURL(coverFile);
+      } else {
+        saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl: null });
+      }
+    };
+
+    loadMangas();
   </script>
 </body>
 </html>
