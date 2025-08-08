@@ -2,126 +2,221 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Manga Sammlung – Ordner nach Mangaka</title>
   <style>
     :root {
       --accent: #e30613;
+      --accent-2: #ff6b73;
       --accent-dark: #c00510;
-      --bg: #f9f9f9;
-      --card: #ffffff;
-      --text: #222;
-      --muted: #666;
-      --ring: rgba(0,0,0,0.08);
+      --bg: #0f1216;
+      --card: #161a20;
+      --card-2: #1b2028;
+      --text: #e9eef5;
+      --muted: #9aa3af;
+      --ring: rgba(0,0,0,0.28);
+      --ring-2: rgba(255,255,255,0.06);
+      --ok: #20c997;
+      --warn: #f59f00;
+      --bad: #f03e3e;
+      --chip: #232a34;
     }
+    [data-theme="light"]{
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --card-2: #f8fafc;
+      --text: #0f172a;
+      --muted: #475569;
+      --ring: rgba(15,23,42,0.1);
+      --ring-2: rgba(0,0,0,0.06);
+      --chip: #eef2f7;
+    }
+
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
-    header { padding: 24px 20px 8px; text-align: center; }
-    h1 { color: var(--accent); margin: 0 0 6px; letter-spacing: 0.5px; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: radial-gradient(1200px 900px at 80% -20%, #1c212a 0%, var(--bg) 40%) no-repeat, var(--bg); color: var(--text); }
+    a { color: inherit; }
+
+    header { padding: 28px 20px 8px; position: sticky; top: 0; backdrop-filter: blur(8px); background: linear-gradient(to bottom, rgba(15,18,22,.72), rgba(15,18,22,.32) 60%, transparent); z-index: 10; }
+    [data-theme="light"] header{ background: linear-gradient(to bottom, rgba(255,255,255,.9), rgba(255,255,255,.6) 60%, transparent); }
+    .head { max-width: 1200px; margin: 0 auto; display:flex; align-items:center; justify-content: space-between; gap: 10px; }
+    h1 { color: inherit; margin: 0; letter-spacing: 0.6px; font-size: clamp(22px, 3.5vw, 34px); }
     .sub { color: var(--muted); font-size: 0.95rem; }
 
-    .container { max-width: 1100px; margin: 0 auto; padding: 16px 20px 40px; }
+    .theme-toggle{ border:1px solid var(--ring-2); background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%); color: inherit; border-radius: 999px; padding: 8px 12px; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow: 0 4px 16px var(--ring); }
 
-    .form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); background: var(--card); padding: 14px; border-radius: 10px; box-shadow: 0 2px 10px var(--ring); margin-bottom: 18px; }
-    .form input[type="text"], .form input[type="date"], .form input[type="file"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; width: 100%; }
-    .form button { padding: 10px 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
-    .form button:hover { background: var(--accent-dark); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 18px 20px 100px; }
+
+    .card { background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%); border: 1px solid var(--ring-2); border-radius: 14px; box-shadow: 0 8px 30px var(--ring); }
+
+    .form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); padding: 14px; margin-bottom: 18px; }
+    .form input[type="text"], .form input[type="date"], .form input[type="file"] { padding: 12px 12px; border: 1px solid #2a313b; background: #0f1319; color: var(--text); border-radius: 10px; width: 100%; outline: none; }
+    [data-theme="light"] .form input{ background: #fff; border-color:#e5e7eb; }
+    .form input::placeholder { color: #617087; }
+    .form button { padding: 12px 14px; border: 0; border-radius: 10px; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); color: #fff; cursor: pointer; font-weight: 700; box-shadow: 0 8px 16px rgba(227,6,19,.3); }
+    .form button:hover { transform: translateY(-1px); }
+
+    .stats{ display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:12px; padding:14px; margin:0 0 18px; }
+    .stat{ background: linear-gradient(180deg, var(--card-2) 0%, var(--card) 100%); border:1px solid var(--ring-2); border-radius: 12px; padding:12px; display:grid; gap:6px; }
+    .stat-label{ color: var(--muted); font-size:.85rem; }
+    .stat-value{ font-size:1.3rem; font-weight:800; }
+    .stat-sub{ font-size:.85rem; color: var(--muted); }
 
     .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    @media (max-width: 900px) { .panes { grid-template-columns: 1fr; } }
+    @media (max-width: 960px) { .panes { grid-template-columns: 1fr; } }
 
-    .pane { background: var(--card); padding: 14px; border-radius: 10px; box-shadow: 0 2px 10px var(--ring); }
-    .pane h2 { margin: 4px 0 12px; display: flex; align-items: center; justify-content: space-between; }
+    .pane { padding: 14px; }
+    .pane h2 { margin: 6px 6px 12px; display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+    .pane .totals { margin-left: auto; display: flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); }
 
-    .search { margin: 0 0 12px; display: flex; gap: 8px; }
-    .search input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .search { margin: 0 6px 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .search input { flex: 1; padding: 10px 12px; border: 1px solid #2a313b; background: #0f1319; color: var(--text); border-radius: 10px; }
+    .search select { padding: 10px 12px; border: 1px solid #2a313b; background: #0f1319; color: var(--text); border-radius: 10px; }
+    [data-theme="light"] .search input,[data-theme="light"] .search select{ background:#fff; border-color:#e5e7eb; }
 
-    /* Folder grid */
-    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; min-height: 88px; }
-    .folder { background: #ffe6e8; border: 1px solid #ffd1d6; border-radius: 12px; padding: 12px; cursor: pointer; position: relative; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease; }
-    .folder:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--ring); }
-    .folder .tab { position: absolute; top: 0; left: 0; width: 46%; height: 10px; background: #ffb4bb; border-bottom-right-radius: 8px; }
-    .folder .name { font-weight: 700; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .folder .meta { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 6px 12px; }
+    .chip { background: var(--chip); border: 1px solid #2a313b; color: inherit; border-radius: 999px; padding: 6px 10px; font-size: .85rem; cursor: pointer; user-select: none; }
+    .chip[aria-pressed="true"] { outline: 2px solid var(--accent-2); }
 
-    /* Modal */
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
-    .modal { width: min(920px, 100%); max-height: 86vh; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr; gap: 10px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); position: relative; }
-    .modal header { text-align: left; padding: 14px 16px 0; }
-    .modal .toolbar { display: flex; gap: 8px; align-items: center; padding: 0 16px 6px; }
-    .modal .toolbar input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
-    .modal .content { overflow: auto; padding: 0 12px 14px; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; min-height: 88px; }
+    .folder { background: linear-gradient(180deg, #1f2631 0%, #1a2029 100%); border: 1px solid #2a313b; border-radius: 14px; padding: 12px; cursor: pointer; position: relative; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease, border-color .2s ease; }
+    [data-theme="light"] .folder{ background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%); border-color:#e5e7eb; }
+    .folder:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,.15); border-color: #394352; }
+    [data-theme="light"] .folder:hover{ border-color:#cbd5e1; }
+    .folder .tab { position: absolute; top: 0; left: 0; width: 46%; height: 10px; background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%); border-bottom-right-radius: 10px; }
+    .folder .name { font-weight: 800; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .folder .meta { color: var(--muted); font-size: 0.86rem; margin-top: 6px; display: flex; justify-content: space-between; gap: 6px; align-items:center; }
+    .folder .meta .pair{ display:flex; align-items:center; gap:6px; }
+    .folder svg{ width:16px; height:16px; opacity:.9; }
 
-    /* Manga entry inside modal */
-    .entry { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; margin: 10px 0; box-shadow: 0 1px 6px var(--ring); }
-    .cover { width: 50px; height: 70px; background: var(--accent); background-size: cover; background-position: center; border-radius: 6px; }
-    .info { font-size: 0.95rem; }
-    .info strong { display: inline-block; }
-    .actions { display: grid; gap: 6px; justify-items: end; }
-    .btn-ico { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 0; cursor: pointer; color: #fff; font-weight: 700; }
-    .btn-edit { background: #007acc; }
-    .btn-edit:hover { background: #005fa3; }
-    .btn-del { background: #888; }
-    .btn-del:hover { background: #444; }
+    .empty { color: var(--muted); text-align: center; padding: 18px 8px; }
+
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+    .modal { width: min(980px, 100%); max-height: 86vh; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr; gap: 10px; background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%); border: 1px solid var(--ring-2); border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); position: relative; color: var(--text); }
+    [data-theme="light"] .modal{ background:#fff; }
+    .modal header { text-align: left; padding: 16px 16px 0; }
+    .modal .toolbar { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 0 16px 8px; }
+    .modal .toolbar input { padding: 10px 12px; border: 1px solid #2a313b; background: #0f1319; color: var(--text); border-radius: 10px; }
+    [data-theme="light"] .modal .toolbar input{ background:#fff; border-color:#e5e7eb; }
+    .modal .content { overflow: auto; padding: 0 12px 16px; }
+    .close-x { position: absolute; right: 10px; top: 10px; background: #0f1319; border: 1px solid #2a313b; border-radius: 10px; font-size: 18px; line-height: 1; cursor: pointer; color: inherit; padding: 6px 8px; }
+    [data-theme="light"] .close-x{ background:#fff; border-color:#e5e7eb; }
+
+    .entry { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; background: #131922; border: 1px solid #283041; border-radius: 12px; padding: 12px; margin: 12px 0; box-shadow: 0 1px 8px rgba(0,0,0,.2); }
+    [data-theme="light"] .entry{ background:#f8fafc; border-color:#e5e7eb; }
+    .cover { width: 56px; height: 78px; background: var(--accent); background-size: cover; background-position: center; border-radius: 8px; }
+    .info { font-size: 0.98rem; }
+    .info .sub { color: var(--muted); font-size: .9rem; }
+    .actions { display: grid; gap: 8px; justify-items: end; }
+    .btn-ico { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; border: 0; cursor: pointer; color: #fff; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+    .btn-edit { background: #228be6; }
+    .btn-edit:hover { filter: brightness(1.1); }
+    .btn-del { background: #5c6775; }
+    .btn-del:hover { filter: brightness(1.1); }
 
     .arrow-bar { display: flex; gap: 6px; }
-    .btn-left { background: #555; }
-    .btn-right { background: var(--accent); }
+    .btn-left { background: #3b4452; }
+    .btn-right { background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); }
 
-    .status { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #ddd; cursor: pointer; }
+    .status { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #2a313b; cursor: pointer; }
 
-    .chip { background: #f1f1f1; border: 1px solid #e5e5e5; border-radius: 999px; padding: 2px 8px; font-size: 0.8rem; color: #444; }
+    .fab { position: fixed; right: 22px; bottom: 22px; width: 56px; height: 56px; border-radius: 999px; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); color: white; display: grid; place-items: center; font-size: 28px; cursor: pointer; box-shadow: 0 16px 40px rgba(227,6,19,.35); z-index: 60; border: 0; }
+    .fab:hover { transform: translateY(-2px); }
 
-    .close-x { position: absolute; right: 10px; top: 8px; background: transparent; border: 0; font-size: 22px; line-height: 1; cursor: pointer; color: #333; }
-    .empty { color: var(--muted); text-align: center; padding: 18px 8px; }
+    .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 96px; background: #10151c; color: #e2e8f0; border: 1px solid #2a313b; padding: 10px 12px; border-radius: 10px; display: none; box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 70; }
+    [data-theme="light"] .toast{ background:#0f172a; color:#fff; border-color:#0f172a; }
+
+    .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
   <header>
-    <h1>MANGASAMMLUNG</h1>
+    <div class="head">
+      <div>
+        <h1>MANGASAMMLUNG</h1>
+        <div class="sub">Ordner-Ansicht nach <strong>Mangaka</strong> · Klick öffnet Werke · ← / → verschiebt zwischen Wunschliste & Besitz</div>
+      </div>
+      <button id="themeToggle" class="theme-toggle" aria-label="Theme umschalten">🌙 <span id="themeLabel">Dark</span></button>
+    </div>
   </header>
 
   <div class="container">
-    <div class="form">
+    <div class="card form" aria-label="Neues Werk hinzufügen">
       <input type="text" id="name" placeholder="Manganame" />
       <input type="text" id="band" placeholder="Bandnummer" />
-      <input type="text" id="preis" placeholder="Preis" />
+      <input type="text" id="preis" placeholder="Preis (z. B. 7.99)" />
       <input type="text" id="mangaka" placeholder="Mangaka" />
       <input type="text" id="verlag" placeholder="Verlag" />
       <input type="date" id="datum" placeholder="Erscheinungsdatum" />
       <input type="file" id="coverUpload" />
-      <button id="addBtn">Hinzufügen</button>
+      <button id="addBtn" title="Werk hinzufügen">Hinzufügen</button>
     </div>
 
+    <section class="card stats" id="stats">
+      <div class="stat"><div class="stat-label">Gesamtwerke</div><div class="stat-value" id="statTotalWorks">0</div></div>
+      <div class="stat"><div class="stat-label">Besitz</div><div class="stat-value" id="statOwned">0</div><div class="stat-sub mono" id="statOwnedValue">0,00 €</div></div>
+      <div class="stat"><div class="stat-label">Wunschliste</div><div class="stat-value" id="statWish">0</div><div class="stat-sub mono" id="statWishValue">0,00 €</div></div>
+      <div class="stat"><div class="stat-label">Ø Preis / Werk</div><div class="stat-value mono" id="statAvg">0,00 €</div></div>
+      <div class="stat"><div class="stat-label">Top Mangaka (Anzahl)</div><div class="stat-value" id="statTopCount">–</div><div class="stat-sub" id="statTopCountSub">–</div></div>
+      <div class="stat"><div class="stat-label">Top Mangaka (Wert Besitz)</div><div class="stat-value" id="statTopValue">–</div><div class="stat-sub" id="statTopValueSub">–</div></div>
+    </section>
+
     <div class="panes">
-      <section class="pane" id="paneWish">
+      <section class="card pane" id="paneWish">
         <h2>
           Wunschliste
-          <span class="chip" id="wishCount">0 Ordner</span>
+          <div class="totals">
+            <span class="mono" id="wishPrice">0,00 €</span>
+            <span class="chip" id="wishCount">0 Ordner</span>
+          </div>
         </h2>
         <div class="search">
           <input type="text" id="searchWish" placeholder="Mangaka suchen…" />
+          <select id="sortWish">
+            <option value="name">Sortierung: A–Z</option>
+            <option value="count">Sortierung: Anzahl</option>
+            <option value="price">Sortierung: Preis</option>
+          </select>
         </div>
-        <div id="gridWish" class="folder-grid"></div>
+        <div class="chips">
+          <button class="chip" data-filter="hasGreen">✓ fertig</button>
+          <button class="chip" data-filter="hasRed">⚠️ fehlt</button>
+        </div>
+        <div id="gridWish" class="folder-grid" aria-live="polite"></div>
         <div class="empty" id="emptyWish" style="display:none;">Noch keine Einträge.</div>
       </section>
 
-      <section class="pane" id="paneOwned">
+      <section class="card pane" id="paneOwned">
         <h2>
           Ich besitze bereits
-          <span class="chip" id="ownedCount">0 Ordner</span>
+          <div class="totals">
+            <span class="mono" id="ownedPrice">0,00 €</span>
+            <span class="chip" id="ownedCount">0 Ordner</span>
+          </div>
         </h2>
         <div class="search">
           <input type="text" id="searchOwned" placeholder="Mangaka suchen…" />
+          <select id="sortOwned">
+            <option value="name">Sortierung: A–Z</option>
+            <option value="count">Sortierung: Anzahl</option>
+            <option value="price">Sortierung: Preis</option>
+          </select>
         </div>
-        <div id="gridOwned" class="folder-grid"></div>
+        <div class="chips">
+          <button class="chip" data-filter="hasGreen">✓ fertig</button>
+          <button class="chip" data-filter="hasRed">⚠️ fehlt</button>
+        </div>
+        <div id="gridOwned" class="folder-grid" aria-live="polite"></div>
         <div class="empty" id="emptyOwned" style="display:none;">Noch keine Einträge.</div>
       </section>
     </div>
   </div>
 
-  <!-- Modal -->
+  <button class="fab" id="fab" title="Werk hinzufügen" aria-label="Werk hinzufügen">＋</button>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <div class="modal-backdrop" id="modalBack">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <header>
         <h2 id="modalTitle">Werke</h2>
         <button class="close-x" id="closeModal" aria-label="Schließen">×</button>
@@ -150,8 +245,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // State
-    let allDocs = []; // {id, data}
+    const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 4h9a3 3 0 013 3v12H9a3 3 0 00-3 3V4z" stroke="currentColor" stroke-width="1.5"/></svg>';
+    const ICON_EURO = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7a7 7 0 00-7-3 7 7 0 00-7 7 7 7 0 007 7 7 7 0 007-3" stroke="currentColor" stroke-width="1.5"/><path d="M3 11h10M3 13h10" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+    // ===== Helpers (fixed names) =====
+    const formatEuro = n => (Number.parseFloat(n||0)).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' \u20AC';
+    const parseEuro = n => Number.parseFloat((String(n||'').replace(',', '.')).replace(/[^0-9.]/g, '')) || 0;
+    const sumEuro = arr => arr.reduce((s, x) => s + parseEuro(x.preis), 0);
+
+    let allDocs = []; // {id, ...data}
     let lastOpen = { mangaka: null, isOwned: false };
 
     const els = {
@@ -159,28 +261,47 @@
       gridOwned: document.getElementById('gridOwned'),
       wishCount: document.getElementById('wishCount'),
       ownedCount: document.getElementById('ownedCount'),
+      wishPrice: document.getElementById('wishPrice'),
+      ownedPrice: document.getElementById('ownedPrice'),
       emptyWish: document.getElementById('emptyWish'),
       emptyOwned: document.getElementById('emptyOwned'),
       searchWish: document.getElementById('searchWish'),
       searchOwned: document.getElementById('searchOwned'),
+      sortWish: document.getElementById('sortWish'),
+      sortOwned: document.getElementById('sortOwned'),
       addBtn: document.getElementById('addBtn'),
+      fab: document.getElementById('fab'),
+      toast: document.getElementById('toast'),
       modalBack: document.getElementById('modalBack'),
       modalTitle: document.getElementById('modalTitle'),
       modalSearch: document.getElementById('modalSearch'),
       modalCount: document.getElementById('modalCount'),
       modalContent: document.getElementById('modalContent'),
       closeModal: document.getElementById('closeModal'),
+      statTotalWorks: document.getElementById('statTotalWorks'),
+      statOwned: document.getElementById('statOwned'),
+      statOwnedValue: document.getElementById('statOwnedValue'),
+      statWish: document.getElementById('statWish'),
+      statWishValue: document.getElementById('statWishValue'),
+      statAvg: document.getElementById('statAvg'),
+      statTopCount: document.getElementById('statTopCount'),
+      statTopCountSub: document.getElementById('statTopCountSub'),
+      statTopValue: document.getElementById('statTopValue'),
+      statTopValueSub: document.getElementById('statTopValueSub'),
+      themeToggle: document.getElementById('themeToggle'),
+      themeLabel: document.getElementById('themeLabel'),
     };
 
     function formatDate(dateString) {
       const date = new Date(dateString);
-      return !isNaN(date) ? date.toLocaleDateString() : "kein Datum";
+      return !isNaN(date) ? date.toLocaleDateString('de-DE') : 'kein Datum';
     }
 
     async function load() {
       const querySnapshot = await getDocs(collection(db, 'mangas'));
       allDocs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       renderFolders();
+      renderStats();
     }
 
     function groupByMangaka(items) {
@@ -191,45 +312,83 @@
         arr.push(it);
         groups.set(key, arr);
       });
-      return groups; // Map(name -> array)
+      return groups;
+    }
+
+    function renderStats(){
+      const total = allDocs.length;
+      const owned = allDocs.filter(x=>!!x.besitze);
+      const wish = allDocs.filter(x=>!x.besitze);
+      const totalPrice = sumEuro(allDocs);
+      const ownedPrice = sumEuro(owned);
+      const wishPrice = sumEuro(wish);
+      const avg = total ? totalPrice/total : 0;
+
+      const byCount = [...groupByMangaka(allDocs).entries()].map(([name, arr])=>({name, count:arr.length})).sort((a,b)=>b.count-a.count).slice(0,3);
+      const byValueOwned = [...groupByMangaka(owned).entries()].map(([name, arr])=>({name, value:sumEuro(arr)})).sort((a,b)=>b.value-a.value).slice(0,3);
+
+      els.statTotalWorks.textContent = String(total);
+      els.statOwned.textContent = String(owned.length);
+      els.statOwnedValue.textContent = formatEuro(ownedPrice);
+      els.statWish.textContent = String(wish.length);
+      els.statWishValue.textContent = formatEuro(wishPrice);
+      els.statAvg.textContent = formatEuro(avg);
+      els.statTopCount.textContent = byCount[0] ? `${byCount[0].name} (${byCount[0].count})` : '–';
+      els.statTopCountSub.textContent = byCount[1] ? `${byCount[1].name} (${byCount[1].count}), ${byCount[2] ? byCount[2].name+` (${byCount[2].count})` : ''}`.trim() : '–';
+      els.statTopValue.textContent = byValueOwned[0] ? `${byValueOwned[0].name} (${formatEuro(byValueOwned[0].value)})` : '–';
+      els.statTopValueSub.textContent = byValueOwned[1] ? `${byValueOwned[1].name} (${formatEuro(byValueOwned[1].value)}), ${byValueOwned[2] ? byValueOwned[2].name+` (${formatEuro(byValueOwned[2].value)})` : ''}`.trim() : '–';
     }
 
     function renderFolders() {
-      // Split by ownership
       const wish = allDocs.filter(x => !x.besitze);
       const owned = allDocs.filter(x => !!x.besitze);
 
-      // Group
       const groupsWish = groupByMangaka(wish);
       const groupsOwned = groupByMangaka(owned);
 
-      // Render grids
-      drawFolderGrid(els.gridWish, groupsWish, false, els.searchWish.value || '');
-      drawFolderGrid(els.gridOwned, groupsOwned, true, els.searchOwned.value || '');
+      drawFolderGrid(els.gridWish, groupsWish, false, els.searchWish.value || '', els.sortWish.value);
+      drawFolderGrid(els.gridOwned, groupsOwned, true, els.searchOwned.value || '', els.sortOwned.value);
 
       els.wishCount.textContent = `${groupsWish.size} Ordner`;
       els.ownedCount.textContent = `${groupsOwned.size} Ordner`;
+      els.wishPrice.textContent = formatEuro(sumEuro(wish));
+      els.ownedPrice.textContent = formatEuro(sumEuro(owned));
 
       els.emptyWish.style.display = wish.length ? 'none' : 'block';
       els.emptyOwned.style.display = owned.length ? 'none' : 'block';
     }
 
-    function drawFolderGrid(container, groups, isOwned, filter) {
+    function drawFolderGrid(container, groups, isOwned, filter, sortMode) {
       container.innerHTML = '';
       const f = (filter || '').toLowerCase();
-      const entries = [...groups.entries()].filter(([name]) => name.toLowerCase().includes(f));
+      let entries = [...groups.entries()].filter(([name]) => name.toLowerCase().includes(f)).map(([name, arr]) => ({ name, arr, count: arr.length, price: sumEuro(arr) }));
 
-      entries.sort((a,b) => a[0].localeCompare(b[0], 'de'));
+      const chipFilters = container.parentElement.querySelectorAll('.chips .chip[aria-pressed="true"]');
+      if (chipFilters.length) {
+        entries = entries.filter(({arr}) => {
+          const colors = new Set(arr.map(x => x.statusColor||'orange'));
+          for (const chip of chipFilters) {
+            if (chip.dataset.filter === 'hasGreen' && !colors.has('green')) return false;
+            if (chip.dataset.filter === 'hasRed' && !colors.has('red')) return false;
+          }
+          return true;
+        });
+      }
 
-      for (const [name, arr] of entries) {
-        const vols = arr.length;
-        const totalPrice = arr.reduce((sum, item) => sum + parseFloat(item.preis || 0), 0).toFixed(2);
+      if (sortMode === 'count') entries.sort((a,b) => b.count - a.count || a.name.localeCompare(b.name,'de'));
+      else if (sortMode === 'price') entries.sort((a,b) => b.price - a.price || a.name.localeCompare(b.name,'de'));
+      else entries.sort((a,b) => a.name.localeCompare(b.name,'de'));
+
+      for (const {name, arr, count, price} of entries) {
         const next = document.createElement('div');
         next.className = 'folder';
         next.innerHTML = `
           <div class="tab"></div>
           <div class="name" title="${name}">${name}</div>
-          <div class="meta">${vols} Werk${vols === 1 ? '' : 'e'} · ${totalPrice} €</div>
+          <div class="meta">
+            <span class="pair">${ICON_BOOK} ${count} Werk${count === 1 ? '' : 'e'}</span>
+            <span class="pair mono">${ICON_EURO} ${formatEuro(price)}</span>
+          </div>
         `;
         next.addEventListener('click', () => openFolder(name, isOwned));
         container.appendChild(next);
@@ -238,7 +397,7 @@
       if (!entries.length) {
         const msg = document.createElement('div');
         msg.className = 'empty';
-        msg.textContent = 'Kein Mangaka gefunden.';
+        msg.textContent = 'Keine passenden Ordner.';
         container.appendChild(msg);
       }
     }
@@ -248,7 +407,7 @@
       els.modalTitle.textContent = `${mangaka} – ${isOwned ? 'Besitz' : 'Wunschliste'}`;
       els.modalSearch.value = '';
       renderModalList();
-      els.modalBack.style.display = 'flex';
+      showModal(true);
     }
 
     function renderModalList() {
@@ -279,28 +438,30 @@
 
         const info = document.createElement('div');
         info.className = 'info';
-        info.innerHTML = `<strong>${it.name}</strong> · Band ${it.band} · ${it.preis} €<br>${it.verlag} · ${formatDate(it.datum)}`;
+        info.innerHTML = `<div><strong>${it.name}</strong> · Band ${it.band} · <span class="mono">${formatEuro(it.preis)}</span></div><div class="sub">${it.verlag} · ${formatDate(it.datum)}</div>`;
 
         const actions = document.createElement('div');
         actions.className = 'actions';
         actions.innerHTML = `
-          <div style="display:flex; gap:6px; align-items:center;">
+          <div style="display:flex; gap:8px; align-items:center;">
             <div class="status" title="Status umschalten"></div>
-            <div class="arrow-bar">
-              <button class="btn-ico btn-left" title="Nach Wunschliste verschieben">←</button>
-              <button class="btn-ico btn-right" title="Zu Besitz verschieben">→</button>
+            <div class="arrow-bar" title="Zwischen Listen verschieben">
+              <button class="btn-ico btn-left" aria-label="Nach Wunschliste">←</button>
+              <button class="btn-ico btn-right" aria-label="Zu Besitz">→</button>
             </div>
           </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-ico btn-edit" title="Bearbeiten">✎</button>
-            <button class="btn-ico btn-del" title="Löschen">×</button>
-          </div>`;
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn-ico btn-edit" aria-label="Bearbeiten">✎</button>
+            <button class="btn-ico btn-del" aria-label="Löschen">×</button>
+          </div>
+        `;
 
         const statusDot = actions.querySelector('.status');
         statusDot.style.backgroundColor = it.statusColor || 'orange';
         statusDot.addEventListener('click', async () => {
           const next = (it.statusColor === 'orange') ? 'red' : (it.statusColor === 'red') ? 'green' : 'orange';
           await updateDoc(doc(db, 'mangas', it.id), { statusColor: next });
+          toast('Status geändert');
           await load();
           openFolder(mangaka, isOwned);
         });
@@ -309,6 +470,7 @@
         btnLeft.addEventListener('click', async (e) => {
           e.stopPropagation();
           await updateDoc(doc(db, 'mangas', it.id), { besitze: false });
+          toast('Zur Wunschliste verschoben');
           await load();
           openFolder(mangaka, isOwned);
         });
@@ -317,6 +479,7 @@
         btnRight.addEventListener('click', async (e) => {
           e.stopPropagation();
           await updateDoc(doc(db, 'mangas', it.id), { besitze: true });
+          toast('Zu Besitz verschoben');
           await load();
           openFolder(mangaka, isOwned);
         });
@@ -328,6 +491,7 @@
         btnDel.addEventListener('click', async () => {
           if (!confirm('Wirklich löschen?')) return;
           await deleteDoc(doc(db, 'mangas', it.id));
+          toast('Gelöscht');
           await load();
           openFolder(mangaka, isOwned);
         });
@@ -339,7 +503,6 @@
       }
     }
 
-    // CRUD helpers
     async function saveManga(data) {
       await addDoc(collection(db, 'mangas'), data);
       await load();
@@ -363,12 +526,41 @@
         verlag: newVerlag ?? current.verlag,
         datum: newDatum ?? current.datum,
       });
+      toast('Aktualisiert');
       await load();
       if (els.modalBack.style.display === 'flex') openFolder(lastOpen.mangaka, lastOpen.isOwned);
     }
 
-    // UI events
-    els.addBtn.addEventListener('click', async () => {
+    let lastActive = null;
+    function showModal(open) {
+      if (open) {
+        lastActive = document.activeElement;
+        els.modalBack.style.display = 'flex';
+        els.modalBack.addEventListener('keydown', trap);
+        els.closeModal.focus();
+      } else {
+        els.modalBack.style.display = 'none';
+        els.modalBack.removeEventListener('keydown', trap);
+        if (lastActive) lastActive.focus();
+      }
+    }
+    function trap(e) {
+      if (e.key === 'Escape') { showModal(false); }
+      if (e.key !== 'Tab') return;
+      const f = els.modalBack.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+      const first = f[0]; const last = f[f.length-1];
+      if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+    }
+
+    function toast(msg) {
+      els.toast.textContent = msg;
+      els.toast.style.display = 'block';
+      clearTimeout(els.toast._t);
+      els.toast._t = setTimeout(() => els.toast.style.display = 'none', 1600);
+    }
+
+    function onAddClick() {
       const name = document.getElementById('name').value.trim();
       const band = document.getElementById('band').value.trim();
       const preis = document.getElementById('preis').value.trim();
@@ -382,8 +574,9 @@
       }
       const coverFile = document.getElementById('coverUpload').files[0];
 
-      const saveData = async (coverUrl) => {
+      const finalize = async (coverUrl) => {
         await saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl, statusColor: 'orange', besitze: false });
+        toast('Werk hinzugefügt');
         for (const id of ['name','band','preis','mangaka','verlag','datum','coverUpload']) {
           const el = document.getElementById(id);
           if (el.type === 'file') el.value = null; else el.value = '';
@@ -392,23 +585,40 @@
 
       if (coverFile) {
         const reader = new FileReader();
-        reader.onload = async () => saveData(reader.result);
+        reader.onload = async () => finalize(reader.result);
         reader.readAsDataURL(coverFile);
       } else {
-        await saveData(null);
+        finalize(null);
       }
-    });
+    }
+
+    els.addBtn.addEventListener('click', onAddClick);
+    els.fab.addEventListener('click', onAddClick);
 
     els.searchWish.addEventListener('input', renderFolders);
     els.searchOwned.addEventListener('input', renderFolders);
+    els.sortWish.addEventListener('change', renderFolders);
+    els.sortOwned.addEventListener('change', renderFolders);
+
+    document.querySelectorAll('#paneWish .chips .chip, #paneOwned .chips .chip').forEach(ch => {
+      ch.addEventListener('click', () => { ch.setAttribute('aria-pressed', ch.getAttribute('aria-pressed') !== 'true'); renderFolders(); });
+    });
 
     els.modalSearch.addEventListener('input', renderModalList);
-    els.closeModal.addEventListener('click', () => els.modalBack.style.display = 'none');
-    els.modalBack.addEventListener('click', (e) => { if (e.target === els.modalBack) els.modalBack.style.display = 'none'; });
+    els.closeModal.addEventListener('click', () => showModal(false));
+    els.modalBack.addEventListener('click', (e) => { if (e.target === els.modalBack) showModal(false); });
 
-    // Start
+    function applyTheme(t){
+      document.documentElement.setAttribute('data-theme', t);
+      els.themeLabel.textContent = t === 'light' ? 'Light' : 'Dark';
+      els.themeToggle.firstChild.nodeValue = t === 'light' ? '☀️' : '🌙';
+      localStorage.setItem('theme', t);
+    }
+    const pref = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(pref);
+    els.themeToggle.addEventListener('click', ()=> applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'));
+
     load();
   </script>
 </body>
 </html>
-
