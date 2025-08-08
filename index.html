@@ -1,320 +1,415 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Manga Sammlung</title>
+  <meta charset="UTF-8" />
+  <title>Manga Sammlung – Ordner nach Mangaka</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      background-color: #f9f9f9;
-      text-align: center;
+    :root {
+      --accent: #e30613;
+      --accent-dark: #c00510;
+      --bg: #f9f9f9;
+      --card: #ffffff;
+      --text: #222;
+      --muted: #666;
+      --ring: rgba(0,0,0,0.08);
     }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    header { padding: 24px 20px 8px; text-align: center; }
+    h1 { color: var(--accent); margin: 0 0 6px; letter-spacing: 0.5px; }
+    .sub { color: var(--muted); font-size: 0.95rem; }
 
-    .title {
-      color: #e30613;
-    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 16px 20px 40px; }
 
-    .form-container,
-    .manga-list {
-      max-width: 1000px;
-      margin: auto;
-    }
+    .form { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); background: var(--card); padding: 14px; border-radius: 10px; box-shadow: 0 2px 10px var(--ring); margin-bottom: 18px; }
+    .form input[type="text"], .form input[type="date"], .form input[type="file"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; width: 100%; }
+    .form button { padding: 10px 12px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
+    .form button:hover { background: var(--accent-dark); }
 
-    .form-container input,
-    .form-container button {
-      padding: 10px;
-      margin: 6px;
-      font-size: 1rem;
-      width: calc(100% - 24px);
-      max-width: 400px;
-    }
+    .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .panes { grid-template-columns: 1fr; } }
 
-    .form-container button {
-      background-color: #e30613;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
+    .pane { background: var(--card); padding: 14px; border-radius: 10px; box-shadow: 0 2px 10px var(--ring); }
+    .pane h2 { margin: 4px 0 12px; display: flex; align-items: center; justify-content: space-between; }
 
-    .form-container button:hover {
-      background-color: #c00510;
-    }
+    .search { margin: 0 0 12px; display: flex; gap: 8px; }
+    .search input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
 
-    .manga-entry {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      background: white;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-    }
+    /* Folder grid */
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; min-height: 88px; }
+    .folder { background: #ffe6e8; border: 1px solid #ffd1d6; border-radius: 12px; padding: 12px; cursor: pointer; position: relative; overflow: hidden; transition: transform .12s ease, box-shadow .12s ease; }
+    .folder:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--ring); }
+    .folder .tab { position: absolute; top: 0; left: 0; width: 46%; height: 10px; background: #ffb4bb; border-bottom-right-radius: 8px; }
+    .folder .name { font-weight: 700; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .folder .meta { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
 
-    .cover {
-      width: 50px;
-      height: 70px;
-      background-color: #e30613;
-      background-size: cover;
-      background-position: center;
-      flex-shrink: 0;
-    }
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+    .modal { width: min(920px, 100%); max-height: 86vh; overflow: hidden; display: grid; grid-template-rows: auto auto 1fr; gap: 10px; background: var(--card); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); position: relative; }
+    .modal header { text-align: left; padding: 14px 16px 0; }
+    .modal .toolbar { display: flex; gap: 8px; align-items: center; padding: 0 16px 6px; }
+    .modal .toolbar input { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; }
+    .modal .content { overflow: auto; padding: 0 12px 14px; }
 
-    .delete-btn,
-    .edit-btn {
-      width: 26px;
-      height: 26px;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 2px auto;
-    }
+    /* Manga entry inside modal */
+    .entry { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; margin: 10px 0; box-shadow: 0 1px 6px var(--ring); }
+    .cover { width: 50px; height: 70px; background: var(--accent); background-size: cover; background-position: center; border-radius: 6px; }
+    .info { font-size: 0.95rem; }
+    .info strong { display: inline-block; }
+    .actions { display: grid; gap: 6px; justify-items: end; }
+    .btn-ico { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 0; cursor: pointer; color: #fff; font-weight: 700; }
+    .btn-edit { background: #007acc; }
+    .btn-edit:hover { background: #005fa3; }
+    .btn-del { background: #888; }
+    .btn-del:hover { background: #444; }
 
-    .delete-btn {
-      background-color: #888;
-    }
+    .arrow-bar { display: flex; gap: 6px; }
+    .btn-left { background: #555; }
+    .btn-right { background: var(--accent); }
 
-    .delete-btn:hover {
-      background-color: #444;
-    }
+    .status { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #ddd; cursor: pointer; }
 
-    .edit-btn {
-      background-color: #007acc;
-    }
+    .chip { background: #f1f1f1; border: 1px solid #e5e5e5; border-radius: 999px; padding: 2px 8px; font-size: 0.8rem; color: #444; }
 
-    .edit-btn:hover {
-      background-color: #005fa3;
-    }
-
-    .status-circle {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: orange;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-
-    .manga-info {
-      flex-grow: 1;
-      text-align: left;
-      font-size: 0.95rem;
-    }
-
-    .manga-info strong {
-      display: inline-block;
-      min-width: 80px;
-    }
-
-    .flex-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 40px;
-      flex-wrap: wrap;
-    }
-
-    .manga-list {
-      min-height: 100px;
-      border: 2px dashed transparent;
-      transition: border-color 0.2s ease;
-    }
-
-    @media (max-width: 800px) {
-      .flex-container {
-        flex-direction: column;
-      }
-    }
+    .close-x { position: absolute; right: 10px; top: 8px; background: transparent; border: 0; font-size: 22px; line-height: 1; cursor: pointer; color: #333; }
+    .empty { color: var(--muted); text-align: center; padding: 18px 8px; }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
-<h1 class="title">MANGASAMMLUNG</h1>
+  <header>
+    <h1>MANGASAMMLUNG</h1>
+    <div class="sub">Ordner-Ansicht nach <strong>Mangaka</strong>. Klick auf einen Ordner zeigt alle Werke. Pfeil-Buttons verschieben Werke zwischen Wunschliste und Besitz.</div>
+  </header>
 
-<div class="form-container">
-  <input type="text" id="name" placeholder="Manganame">
-  <input type="text" id="band" placeholder="Bandnummer">
-  <input type="text" id="preis" placeholder="Preis">
-  <input type="text" id="mangaka" placeholder="Mangaka">
-  <input type="text" id="verlag" placeholder="Verlag">
-  <input type="date" id="datum" placeholder="Erscheinungsdatum">
-  <input type="file" id="coverUpload">
-  <button onclick="addManga()">Hinzufügen</button>
-</div>
-
-<div class="flex-container">
-  <div style="flex: 1; min-width: 300px;">
-    <h2>Manga Liste</h2>
-    <input type="text" id="searchInput" placeholder="Suche nach Name, Band, Mangaka..." oninput="filterMangas()" style="margin-bottom: 20px; padding: 6px; width: 90%;">
-    <div class="manga-list" id="mangaList"></div>
-  </div>
-  <div style="flex: 1; min-width: 300px;">
-    <h2>Ich besitze bereits</h2>
-    <div class="manga-list" id="ownedList"></div>
-  </div>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs,
-  deleteDoc, doc, updateDoc
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
-  authDomain: "mangasammlung-af171.firebaseapp.com",
-  projectId: "mangasammlung-af171",
-  storageBucket: "mangasammlung-af171.appspot.com",
-  messagingSenderId: "957280021236",
-  appId: "1:957280021236:web:ee8ea047e61ba246a84ca1"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const list = document.getElementById("mangaList");
-const owned = document.getElementById("ownedList");
-
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  return !isNaN(date) ? date.toLocaleDateString() : "kein Datum";
-}
-
-async function saveManga(data) {
-  await addDoc(collection(db, "mangas"), data);
-  loadMangas();
-}
-
-async function loadMangas() {
-  list.innerHTML = "";
-  owned.innerHTML = "";
-  const querySnapshot = await getDocs(collection(db, "mangas"));
-  querySnapshot.forEach(docSnap => {
-    renderManga(docSnap.data(), docSnap.id);
-  });
-}
-
-function renderManga(data, docId) {
-  const { name, band, preis, mangaka, verlag, datum, coverUrl, statusColor = "orange", besitze = false } = data;
-
-  const entry = document.createElement("div");
-  entry.className = "manga-entry";
-  entry.id = docId;
-  entry.dataset.docid = docId;
-
-  entry.innerHTML = `
-    <div style="display: flex; flex-direction: column;">
-      <div class="delete-btn" onclick="deleteManga('${docId}')">×</div>
-      <div class="edit-btn" onclick="editManga('${docId}')">✎</div>
+  <div class="container">
+    <div class="form">
+      <input type="text" id="name" placeholder="Manganame" />
+      <input type="text" id="band" placeholder="Bandnummer" />
+      <input type="text" id="preis" placeholder="Preis" />
+      <input type="text" id="mangaka" placeholder="Mangaka" />
+      <input type="text" id="verlag" placeholder="Verlag" />
+      <input type="date" id="datum" placeholder="Erscheinungsdatum" />
+      <input type="file" id="coverUpload" />
+      <button id="addBtn">Hinzufügen</button>
     </div>
-    <div class="cover" style="${coverUrl ? `background-image: url(${coverUrl})` : ''}"></div>
-    <div class="manga-info">
-      <strong>${name}</strong> | Band ${band} | ${preis} €<br>${mangaka} | ${verlag} | ${formatDate(datum)}
+
+    <div class="panes">
+      <section class="pane" id="paneWish">
+        <h2>
+          Wunschliste
+          <span class="chip" id="wishCount">0 Ordner</span>
+        </h2>
+        <div class="search">
+          <input type="text" id="searchWish" placeholder="Mangaka suchen…" />
+        </div>
+        <div id="gridWish" class="folder-grid"></div>
+        <div class="empty" id="emptyWish" style="display:none;">Noch keine Einträge.</div>
+      </section>
+
+      <section class="pane" id="paneOwned">
+        <h2>
+          Ich besitze bereits
+          <span class="chip" id="ownedCount">0 Ordner</span>
+        </h2>
+        <div class="search">
+          <input type="text" id="searchOwned" placeholder="Mangaka suchen…" />
+        </div>
+        <div id="gridOwned" class="folder-grid"></div>
+        <div class="empty" id="emptyOwned" style="display:none;">Noch keine Einträge.</div>
+      </section>
     </div>
-    <div class="status-circle" style="background-color: ${statusColor};" onclick="toggleStatus('${docId}', '${statusColor}')"></div>
-  `;
+  </div>
 
-  (besitze ? owned : list).appendChild(entry);
-}
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modalBack">
+    <div class="modal">
+      <header>
+        <h2 id="modalTitle">Werke</h2>
+        <button class="close-x" id="closeModal" aria-label="Schließen">×</button>
+      </header>
+      <div class="toolbar">
+        <input type="text" id="modalSearch" placeholder="In Werken suchen…" />
+        <span class="chip" id="modalCount"></span>
+      </div>
+      <div class="content" id="modalContent"></div>
+    </div>
+  </div>
 
-window.deleteManga = async function(docId) {
-  await deleteDoc(doc(db, "mangas", docId));
-  loadMangas();
-};
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-window.editManga = async function(docId) {
-  const ref = doc(db, "mangas", docId);
-  const data = (await getDocs(collection(db, "mangas"))).docs.find(d => d.id === docId)?.data();
-  if (!data) return;
+    const firebaseConfig = {
+      apiKey: "AIzaSyCVBhEiAeNsNSF9OkdlAqOGZcBS1J1L2s4",
+      authDomain: "mangasammlung-af171.firebaseapp.com",
+      projectId: "mangasammlung-af171",
+      storageBucket: "mangasammlung-af171.appspot.com",
+      messagingSenderId: "957280021236",
+      appId: "1:957280021236:web:ee8ea047e61ba246a84ca1"
+    };
 
-  const newName = prompt("Neuer Name:", data.name);
-  const newBand = prompt("Neue Bandnummer:", data.band);
-  const newPreis = prompt("Neuer Preis (€):", data.preis);
-  const newMangaka = prompt("Neuer Mangaka:", data.mangaka);
-  const newVerlag = prompt("Neuer Verlag:", data.verlag);
-  const newDatum = prompt("Neues Erscheinungsdatum (YYYY-MM-DD):", data.datum);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  await updateDoc(ref, {
-    name: newName ?? data.name,
-    band: newBand ?? data.band,
-    preis: newPreis ?? data.preis,
-    mangaka: newMangaka ?? data.mangaka,
-    verlag: newVerlag ?? data.verlag,
-    datum: newDatum ?? data.datum
-  });
+    // State
+    let allDocs = []; // {id, data}
+    let lastOpen = { mangaka: null, isOwned: false };
 
-  loadMangas();
-};
+    const els = {
+      gridWish: document.getElementById('gridWish'),
+      gridOwned: document.getElementById('gridOwned'),
+      wishCount: document.getElementById('wishCount'),
+      ownedCount: document.getElementById('ownedCount'),
+      emptyWish: document.getElementById('emptyWish'),
+      emptyOwned: document.getElementById('emptyOwned'),
+      searchWish: document.getElementById('searchWish'),
+      searchOwned: document.getElementById('searchOwned'),
+      addBtn: document.getElementById('addBtn'),
+      modalBack: document.getElementById('modalBack'),
+      modalTitle: document.getElementById('modalTitle'),
+      modalSearch: document.getElementById('modalSearch'),
+      modalCount: document.getElementById('modalCount'),
+      modalContent: document.getElementById('modalContent'),
+      closeModal: document.getElementById('closeModal'),
+    };
 
-window.addManga = () => {
-  const name = document.getElementById("name").value.trim();
-  const band = document.getElementById("band").value.trim();
-  const preis = document.getElementById("preis").value.trim();
-  const mangaka = document.getElementById("mangaka").value.trim();
-  const verlag = document.getElementById("verlag").value.trim();
-  const datum = document.getElementById("datum").value || new Date().toISOString().split("T")[0];
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return !isNaN(date) ? date.toLocaleDateString() : "kein Datum";
+    }
 
-  if (!name || !band || !preis || !mangaka || !verlag) {
-    alert("Bitte alle Felder ausfüllen!");
-    return;
-  }
+    async function load() {
+      const querySnapshot = await getDocs(collection(db, 'mangas'));
+      allDocs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderFolders();
+    }
 
-  const coverFile = document.getElementById("coverUpload").files[0];
-  const saveData = (coverUrl) => {
-    saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl, besitze: false });
-  };
+    function groupByMangaka(items) {
+      const groups = new Map();
+      items.forEach(it => {
+        const key = (it.mangaka || 'Unbekannt').trim();
+        const arr = groups.get(key) || [];
+        arr.push(it);
+        groups.set(key, arr);
+      });
+      return groups; // Map(name -> array)
+    }
 
-  if (coverFile) {
-    const reader = new FileReader();
-    reader.onload = () => saveData(reader.result);
-    reader.readAsDataURL(coverFile);
-  } else {
-    saveData(null);
-  }
-};
+    function renderFolders() {
+      // Split by ownership
+      const wish = allDocs.filter(x => !x.besitze);
+      const owned = allDocs.filter(x => !!x.besitze);
 
-window.filterMangas = () => {
-  const search = document.getElementById("searchInput").value.toLowerCase();
-  document.querySelectorAll(".manga-entry").forEach(entry => {
-    entry.style.display = entry.innerText.toLowerCase().includes(search) ? "flex" : "none";
-  });
-};
+      // Group
+      const groupsWish = groupByMangaka(wish);
+      const groupsOwned = groupByMangaka(owned);
 
-window.toggleStatus = async function(docId, currentColor) {
-  const nextColor = currentColor === "orange" ? "red" : currentColor === "red" ? "green" : "orange";
-  await updateDoc(doc(db, "mangas", docId), { statusColor: nextColor });
-  loadMangas();
-};
+      // Render grids
+      drawFolderGrid(els.gridWish, groupsWish, false, els.searchWish.value || '');
+      drawFolderGrid(els.gridOwned, groupsOwned, true, els.searchOwned.value || '');
 
-// Touchfreundliches Drag & Drop mit SortableJS
-new Sortable(document.getElementById("mangaList"), {
-  group: "mangas",
-  animation: 150,
-  onEnd: async function (evt) {
-    const docId = evt.item.dataset.docid;
-    const isOwned = evt.to.id === "ownedList";
-    await updateDoc(doc(db, "mangas", docId), { besitze: isOwned });
-  }
-});
+      els.wishCount.textContent = `${groupsWish.size} Ordner`;
+      els.ownedCount.textContent = `${groupsOwned.size} Ordner`;
 
-new Sortable(document.getElementById("ownedList"), {
-  group: "mangas",
-  animation: 150,
-  onEnd: async function (evt) {
-    const docId = evt.item.dataset.docid;
-    const isOwned = evt.to.id === "ownedList";
-    await updateDoc(doc(db, "mangas", docId), { besitze: isOwned });
-  }
-});
+      els.emptyWish.style.display = wish.length ? 'none' : 'block';
+      els.emptyOwned.style.display = owned.length ? 'none' : 'block';
+    }
 
-loadMangas();
-</script>
+    function drawFolderGrid(container, groups, isOwned, filter) {
+      container.innerHTML = '';
+      const f = (filter || '').toLowerCase();
+      const entries = [...groups.entries()].filter(([name]) => name.toLowerCase().includes(f));
+
+      entries.sort((a,b) => a[0].localeCompare(b[0], 'de'));
+
+      for (const [name, arr] of entries) {
+        const vols = arr.length;
+        const totalPrice = arr.reduce((sum, item) => sum + parseFloat(item.preis || 0), 0).toFixed(2);
+        const next = document.createElement('div');
+        next.className = 'folder';
+        next.innerHTML = `
+          <div class="tab"></div>
+          <div class="name" title="${name}">${name}</div>
+          <div class="meta">${vols} Werk${vols === 1 ? '' : 'e'} · ${totalPrice} €</div>
+        `;
+        next.addEventListener('click', () => openFolder(name, isOwned));
+        container.appendChild(next);
+      }
+
+      if (!entries.length) {
+        const msg = document.createElement('div');
+        msg.className = 'empty';
+        msg.textContent = 'Kein Mangaka gefunden.';
+        container.appendChild(msg);
+      }
+    }
+
+    function openFolder(mangaka, isOwned) {
+      lastOpen = { mangaka, isOwned };
+      els.modalTitle.textContent = `${mangaka} – ${isOwned ? 'Besitz' : 'Wunschliste'}`;
+      els.modalSearch.value = '';
+      renderModalList();
+      els.modalBack.style.display = 'flex';
+    }
+
+    function renderModalList() {
+      const { mangaka, isOwned } = lastOpen;
+      const query = (els.modalSearch.value || '').toLowerCase();
+      const items = allDocs
+        .filter(x => (x.mangaka || 'Unbekannt').trim() === mangaka && (!!x.besitze) === isOwned)
+        .filter(x => (x.name + ' ' + x.band + ' ' + x.verlag + ' ' + (x.preis||'')).toLowerCase().includes(query));
+
+      els.modalContent.innerHTML = '';
+      els.modalCount.textContent = `${items.length} Werk${items.length === 1 ? '' : 'e'}`;
+
+      if (!items.length) {
+        const d = document.createElement('div');
+        d.className = 'empty';
+        d.textContent = 'Keine Werke gefunden.';
+        els.modalContent.appendChild(d);
+        return;
+      }
+
+      for (const it of items) {
+        const row = document.createElement('div');
+        row.className = 'entry';
+
+        const cover = document.createElement('div');
+        cover.className = 'cover';
+        if (it.coverUrl) cover.style.backgroundImage = `url(${it.coverUrl})`;
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        info.innerHTML = `<strong>${it.name}</strong> · Band ${it.band} · ${it.preis} €<br>${it.verlag} · ${formatDate(it.datum)}`;
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        actions.innerHTML = `
+          <div style="display:flex; gap:6px; align-items:center;">
+            <div class="status" title="Status umschalten"></div>
+            <div class="arrow-bar">
+              <button class="btn-ico btn-left" title="Nach Wunschliste verschieben">←</button>
+              <button class="btn-ico btn-right" title="Zu Besitz verschieben">→</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-ico btn-edit" title="Bearbeiten">✎</button>
+            <button class="btn-ico btn-del" title="Löschen">×</button>
+          </div>`;
+
+        const statusDot = actions.querySelector('.status');
+        statusDot.style.backgroundColor = it.statusColor || 'orange';
+        statusDot.addEventListener('click', async () => {
+          const next = (it.statusColor === 'orange') ? 'red' : (it.statusColor === 'red') ? 'green' : 'orange';
+          await updateDoc(doc(db, 'mangas', it.id), { statusColor: next });
+          await load();
+          openFolder(mangaka, isOwned);
+        });
+
+        const btnLeft = actions.querySelector('.btn-left');
+        btnLeft.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await updateDoc(doc(db, 'mangas', it.id), { besitze: false });
+          await load();
+          openFolder(mangaka, isOwned);
+        });
+
+        const btnRight = actions.querySelector('.btn-right');
+        btnRight.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          await updateDoc(doc(db, 'mangas', it.id), { besitze: true });
+          await load();
+          openFolder(mangaka, isOwned);
+        });
+
+        const btnEdit = actions.querySelector('.btn-edit');
+        btnEdit.addEventListener('click', async () => editManga(it.id));
+
+        const btnDel = actions.querySelector('.btn-del');
+        btnDel.addEventListener('click', async () => {
+          if (!confirm('Wirklich löschen?')) return;
+          await deleteDoc(doc(db, 'mangas', it.id));
+          await load();
+          openFolder(mangaka, isOwned);
+        });
+
+        row.appendChild(cover);
+        row.appendChild(info);
+        row.appendChild(actions);
+        els.modalContent.appendChild(row);
+      }
+    }
+
+    // CRUD helpers
+    async function saveManga(data) {
+      await addDoc(collection(db, 'mangas'), data);
+      await load();
+    }
+
+    async function editManga(docId) {
+      const current = allDocs.find(d => d.id === docId);
+      if (!current) return;
+      const newName = prompt('Neuer Name:', current.name);
+      const newBand = prompt('Neue Bandnummer:', current.band);
+      const newPreis = prompt('Neuer Preis (€):', current.preis);
+      const newMangaka = prompt('Neuer Mangaka:', current.mangaka);
+      const newVerlag = prompt('Neuer Verlag:', current.verlag);
+      const newDatum = prompt('Neues Erscheinungsdatum (YYYY-MM-DD):', current.datum);
+
+      await updateDoc(doc(db, 'mangas', docId), {
+        name: newName ?? current.name,
+        band: newBand ?? current.band,
+        preis: newPreis ?? current.preis,
+        mangaka: newMangaka ?? current.mangaka,
+        verlag: newVerlag ?? current.verlag,
+        datum: newDatum ?? current.datum,
+      });
+      await load();
+      if (els.modalBack.style.display === 'flex') openFolder(lastOpen.mangaka, lastOpen.isOwned);
+    }
+
+    // UI events
+    els.addBtn.addEventListener('click', async () => {
+      const name = document.getElementById('name').value.trim();
+      const band = document.getElementById('band').value.trim();
+      const preis = document.getElementById('preis').value.trim();
+      const mangaka = document.getElementById('mangaka').value.trim();
+      const verlag = document.getElementById('verlag').value.trim();
+      const datum = document.getElementById('datum').value || new Date().toISOString().split('T')[0];
+
+      if (!name || !band || !preis || !mangaka || !verlag) {
+        alert('Bitte alle Felder ausfüllen!');
+        return;
+      }
+      const coverFile = document.getElementById('coverUpload').files[0];
+
+      const saveData = async (coverUrl) => {
+        await saveManga({ name, band, preis, mangaka, verlag, datum, coverUrl, statusColor: 'orange', besitze: false });
+        for (const id of ['name','band','preis','mangaka','verlag','datum','coverUpload']) {
+          const el = document.getElementById(id);
+          if (el.type === 'file') el.value = null; else el.value = '';
+        }
+      };
+
+      if (coverFile) {
+        const reader = new FileReader();
+        reader.onload = async () => saveData(reader.result);
+        reader.readAsDataURL(coverFile);
+      } else {
+        await saveData(null);
+      }
+    });
+
+    els.searchWish.addEventListener('input', renderFolders);
+    els.searchOwned.addEventListener('input', renderFolders);
+
+    els.modalSearch.addEventListener('input', renderModalList);
+    els.closeModal.addEventListener('click', () => els.modalBack.style.display = 'none');
+    els.modalBack.addEventListener('click', (e) => { if (e.target === els.modalBack) els.modalBack.style.display = 'none'; });
+
+    // Start
+    load();
+  </script>
 </body>
 </html>
+
