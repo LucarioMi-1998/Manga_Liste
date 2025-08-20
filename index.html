@@ -134,7 +134,7 @@
     <div class="head">
       <div>
         <h1>MANGASAMMLUNG</h1>
-        <div class="sub">Ordner-Ansicht nach <strong>Mangaka</strong> · Klick öffnet Werke · ← / → verschiebt zwischen Wunschliste & Besitz</div>
+        <div class="sub">Ordner-Ansicht nach <strong>Mangaka</strong> · Klick öffnet Serien · ← / → verschiebt zwischen Wunschliste & Besitz</div>
       </div>
       <button id="themeToggle" class="theme-toggle" aria-label="Theme umschalten">🌙 <span id="themeLabel">Dark</span></button>
     </div>
@@ -218,11 +218,11 @@
   <div class="modal-backdrop" id="modalBack">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <header>
-        <h2 id="modalTitle">Werke</h2>
+        <h2 id="modalTitle">Serien</h2>
         <button class="close-x" id="closeModal" aria-label="Schließen">×</button>
       </header>
       <div class="toolbar">
-        <input type="text" id="modalSearch" placeholder="In Werken suchen…" />
+        <input type="text" id="modalSearch" placeholder="Suchen…" />
         <span class="chip" id="modalCount"></span>
       </div>
       <div class="content" id="modalContent"></div>
@@ -254,7 +254,8 @@
     const sumEuro = arr => arr.reduce((s, x) => s + parseEuro(x.preis), 0);
 
     let allDocs = []; // {id, ...data}
-    let lastOpen = { mangaka: null, isOwned: false };
+    // Erweiterter State für zweistufige Navigation
+    let lastOpen = { mangaka: null, series: null, isOwned: false, level: 'series' }; 
 
     const els = {
       gridWish: document.getElementById('gridWish'),
@@ -313,6 +314,20 @@
         groups.set(key, arr);
       });
       return groups;
+    }
+
+    // NEU: Serien innerhalb eines Mangaka (pro Liste) gruppieren
+    function groupSeriesForMangaka(items, mangaka, isOwned){
+      const seriesMap = new Map();
+      items
+        .filter(x => (x.mangaka || 'Unbekannt').trim() === mangaka && (!!x.besitze) === isOwned)
+        .forEach(it => {
+          const series = (it.name || 'Unbekannt').trim();
+          const arr = seriesMap.get(series) || [];
+          arr.push(it);
+          seriesMap.set(series, arr);
+        });
+      return seriesMap;
     }
 
     function renderStats(){
@@ -402,104 +417,190 @@
       }
     }
 
+    // Öffnet Serien-Übersicht eines Mangaka
     function openFolder(mangaka, isOwned) {
-      lastOpen = { mangaka, isOwned };
-      els.modalTitle.textContent = `${mangaka} – ${isOwned ? 'Besitz' : 'Wunschliste'}`;
+      lastOpen = { mangaka, series: null, isOwned, level: 'series' };
+      els.modalTitle.textContent = `${mangaka} – Serien (${isOwned ? 'Besitz' : 'Wunschliste'})`;
       els.modalSearch.value = '';
       renderModalList();
       showModal(true);
     }
 
+    // Öffnet Werke einer Serie (Bände nach Nummer sortiert)
+    function openSeries(mangaka, series, isOwned){
+      lastOpen = { mangaka, series, isOwned, level: 'works' };
+      els.modalTitle.textContent = `${mangaka} → ${series} – Bände (${isOwned ? 'Besitz' : 'Wunschliste'})`;
+      els.modalSearch.value = '';
+      renderModalList();
+    }
+
+    // ERSETZT: renderModalList – zweistufig (Serien -> Werke)
     function renderModalList() {
-      const { mangaka, isOwned } = lastOpen;
+      const { mangaka, series, isOwned, level } = lastOpen;
       const query = (els.modalSearch.value || '').toLowerCase();
-      const items = allDocs
-        .filter(x => (x.mangaka || 'Unbekannt').trim() === mangaka && (!!x.besitze) === isOwned)
-        .filter(x => (x.name + ' ' + x.band + ' ' + x.verlag + ' ' + (x.preis||'')).toLowerCase().includes(query));
 
       els.modalContent.innerHTML = '';
-      els.modalCount.textContent = `${items.length} Werk${items.length === 1 ? '' : 'e'}`;
 
-      if (!items.length) {
-        const d = document.createElement('div');
-        d.className = 'empty';
-        d.textContent = 'Keine Werke gefunden.';
-        els.modalContent.appendChild(d);
-        return;
-      }
+      // Breadcrumb / Zurück
+      const backRow = document.createElement('div');
+      backRow.style.display = 'flex';
+      backRow.style.justifyContent = 'space-between';
+      backRow.style.alignItems = 'center';
+      backRow.style.margin = '8px 0 4px';
+      const backBtn = document.createElement('button');
+      backBtn.className = 'chip';
+      backBtn.textContent = level === 'works' ? '← Zur Serienübersicht' : '× Schließen';
+      backBtn.addEventListener('click', () => {
+        if (level === 'works') openFolder(mangaka, isOwned);
+        else showModal(false);
+      });
+      backRow.appendChild(backBtn);
+      els.modalContent.appendChild(backRow);
 
-      for (const it of items) {
-        const row = document.createElement('div');
-        row.className = 'entry';
+      if (level === 'series') {
+        // SERIEN-ÜBERSICHT
+        const seriesMap = groupSeriesForMangaka(allDocs, mangaka, isOwned);
+        let entries = [...seriesMap.entries()].map(([name, arr]) => ({
+          name,
+          count: arr.length,
+          price: sumEuro(arr),
+          hasGreen: arr.some(x => x.statusColor === 'green'),
+          hasRed: arr.some(x => x.statusColor === 'red'),
+        }));
 
-        const cover = document.createElement('div');
-        cover.className = 'cover';
-        if (it.coverUrl) cover.style.backgroundImage = `url(${it.coverUrl})`;
+        if (query) entries = entries.filter(e => e.name.toLowerCase().includes(query));
 
-        const info = document.createElement('div');
-        info.className = 'info';
-        info.innerHTML = `<div><strong>${it.name}</strong> · Band ${it.band} · <span class="mono">${formatEuro(it.preis)}</span></div><div class="sub">${it.verlag} · ${formatDate(it.datum)}</div>`;
+        entries.sort((a,b)=> a.name.localeCompare(b.name, 'de'));
 
-        const actions = document.createElement('div');
-        actions.className = 'actions';
-        actions.innerHTML = `
-          <div style="display:flex; gap:8px; align-items:center;">
-            <div class="status" title="Status umschalten"></div>
-            <div class="arrow-bar" title="Zwischen Listen verschieben">
-              <button class="btn-ico btn-left" aria-label="Nach Wunschliste">←</button>
-              <button class="btn-ico btn-right" aria-label="Zu Besitz">→</button>
+        els.modalCount.textContent = `${entries.length} Serie${entries.length === 1 ? '' : 'n'}`;
+
+        if (!entries.length) {
+          const d = document.createElement('div');
+          d.className = 'empty';
+          d.textContent = 'Keine Serien gefunden.';
+          els.modalContent.appendChild(d);
+          return;
+        }
+
+        for (const e of entries) {
+          const row = document.createElement('div');
+          row.className = 'entry';
+          const cover = document.createElement('div');
+          cover.className = 'cover';
+          const info = document.createElement('div');
+          info.className = 'info';
+          info.innerHTML = `<div><strong>${e.name}</strong> · ${e.count} Band${e.count===1?'':'e'} · <span class="mono">${formatEuro(e.price)}</span></div><div class="sub">Serie von ${mangaka}</div>`;
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+          const openBtn = document.createElement('button');
+          openBtn.className = 'btn-ico btn-edit';
+          openBtn.setAttribute('aria-label','Serie öffnen');
+          openBtn.textContent = '→';
+          openBtn.addEventListener('click', () => openSeries(mangaka, e.name, isOwned));
+          actions.appendChild(openBtn);
+
+          row.appendChild(cover);
+          row.appendChild(info);
+          row.appendChild(actions);
+          els.modalContent.appendChild(row);
+
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', (ev) => {
+            if (ev.target.closest('.btn-ico')) return;
+            openSeries(mangaka, e.name, isOwned);
+          });
+        }
+
+      } else {
+        // WERKE-ANSICHT (Bände sortiert)
+        const items = allDocs
+          .filter(x => (x.mangaka || 'Unbekannt').trim() === mangaka && (!!x.besitze) === isOwned && (x.name || 'Unbekannt').trim() === series)
+          .filter(x => ( (x.name + ' ' + x.band + ' ' + x.verlag + ' ' + (x.preis||'') ).toLowerCase().includes(query)))
+          .sort((a, b) => (Number(a.band) || 0) - (Number(b.band) || 0));
+
+        els.modalCount.textContent = `${items.length} Band${items.length === 1 ? '' : 'e'}`;
+
+        if (!items.length) {
+          const d = document.createElement('div');
+          d.className = 'empty';
+          d.textContent = 'Keine Bände gefunden.';
+          els.modalContent.appendChild(d);
+          return;
+        }
+
+        for (const it of items) {
+          const row = document.createElement('div');
+          row.className = 'entry';
+
+          const cover = document.createElement('div');
+          cover.className = 'cover';
+          if (it.coverUrl) cover.style.backgroundImage = `url(${it.coverUrl})`;
+
+          const info = document.createElement('div');
+          info.className = 'info';
+          info.innerHTML = `<div><strong>${series}</strong> · Band ${it.band} · <span class="mono">${formatEuro(it.preis)}</span></div><div class="sub">${it.verlag} · ${formatDate(it.datum)}</div>`;
+
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+          actions.innerHTML = `
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div class="status" title="Status umschalten"></div>
+              <div class="arrow-bar" title="Zwischen Listen verschieben">
+                <button class="btn-ico btn-left" aria-label="Nach Wunschliste">←</button>
+                <button class="btn-ico btn-right" aria-label="Zu Besitz">→</button>
+              </div>
             </div>
-          </div>
-          <div style="display:flex; gap:8px; justify-content:flex-end;">
-            <button class="btn-ico btn-edit" aria-label="Bearbeiten">✎</button>
-            <button class="btn-ico btn-del" aria-label="Löschen">×</button>
-          </div>
-        `;
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+              <button class="btn-ico btn-edit" aria-label="Bearbeiten">✎</button>
+              <button class="btn-ico btn-del" aria-label="Löschen">×</button>
+            </div>
+          `;
 
-        const statusDot = actions.querySelector('.status');
-        statusDot.style.backgroundColor = it.statusColor || 'orange';
-        statusDot.addEventListener('click', async () => {
-          const next = (it.statusColor === 'orange') ? 'red' : (it.statusColor === 'red') ? 'green' : 'orange';
-          await updateDoc(doc(db, 'mangas', it.id), { statusColor: next });
-          toast('Status geändert');
-          await load();
-          openFolder(mangaka, isOwned);
-        });
+          const statusDot = actions.querySelector('.status');
+          statusDot.style.backgroundColor = it.statusColor || 'orange';
+          statusDot.addEventListener('click', async () => {
+            const next = (it.statusColor === 'orange') ? 'red' : (it.statusColor === 'red') ? 'green' : 'orange';
+            await updateDoc(doc(db, 'mangas', it.id), { statusColor: next });
+            toast('Status geändert');
+            await load();
+            openSeries(mangaka, series, isOwned);
+          });
 
-        const btnLeft = actions.querySelector('.btn-left');
-        btnLeft.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await updateDoc(doc(db, 'mangas', it.id), { besitze: false });
-          toast('Zur Wunschliste verschoben');
-          await load();
-          openFolder(mangaka, isOwned);
-        });
+          const btnLeft = actions.querySelector('.btn-left');
+          btnLeft.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await updateDoc(doc(db, 'mangas', it.id), { besitze: false });
+            toast('Zur Wunschliste verschoben');
+            await load();
+            openSeries(mangaka, series, isOwned);
+          });
 
-        const btnRight = actions.querySelector('.btn-right');
-        btnRight.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          await updateDoc(doc(db, 'mangas', it.id), { besitze: true });
-          toast('Zu Besitz verschoben');
-          await load();
-          openFolder(mangaka, isOwned);
-        });
+          const btnRight = actions.querySelector('.btn-right');
+          btnRight.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await updateDoc(doc(db, 'mangas', it.id), { besitze: true });
+            toast('Zu Besitz verschoben');
+            await load();
+            openSeries(mangaka, series, isOwned);
+          });
 
-        const btnEdit = actions.querySelector('.btn-edit');
-        btnEdit.addEventListener('click', async () => editManga(it.id));
+          const btnEdit = actions.querySelector('.btn-edit');
+          btnEdit.addEventListener('click', async () => editManga(it.id));
 
-        const btnDel = actions.querySelector('.btn-del');
-        btnDel.addEventListener('click', async () => {
-          if (!confirm('Wirklich löschen?')) return;
-          await deleteDoc(doc(db, 'mangas', it.id));
-          toast('Gelöscht');
-          await load();
-          openFolder(mangaka, isOwned);
-        });
+          const btnDel = actions.querySelector('.btn-del');
+          btnDel.addEventListener('click', async () => {
+            if (!confirm('Wirklich löschen?')) return;
+            await deleteDoc(doc(db, 'mangas', it.id));
+            toast('Gelöscht');
+            await load();
+            openSeries(mangaka, series, isOwned);
+          });
 
-        row.appendChild(cover);
-        row.appendChild(info);
-        row.appendChild(actions);
-        els.modalContent.appendChild(row);
+          row.appendChild(cover);
+          row.appendChild(info);
+          row.appendChild(actions);
+          els.modalContent.appendChild(row);
+        }
       }
     }
 
@@ -528,7 +629,10 @@
       });
       toast('Aktualisiert');
       await load();
-      if (els.modalBack.style.display === 'flex') openFolder(lastOpen.mangaka, lastOpen.isOwned);
+      if (els.modalBack.style.display === 'flex') {
+        if (lastOpen.level === 'works') openSeries(lastOpen.mangaka, lastOpen.series, lastOpen.isOwned);
+        else openFolder(lastOpen.mangaka, lastOpen.isOwned);
+      }
     }
 
     let lastActive = null;
